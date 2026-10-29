@@ -148,11 +148,22 @@ async function aOffers() {
 async function aClients() {
   const [{ data: cl }, { data: codes }] = await Promise.all([sb.from('profiles').select('*').order('created_at', { ascending: false }), sb.from('verif_codes').select('*')]);
   const code = id => (codes.find(c => c.user_id === id) || {}).code;
-  $('#a').innerHTML = `<div class="c">${cl.map(u => `<div class="row"><div><b>${esc(u.name)}</b> ${u.is_admin ? '👑' : ''}<br><span class="mut">${esc(u.email)} · ${esc(u.phone)}</span></div>
+  $('#a').innerHTML = `<div class="c"><h2>Enviar o quitar créditos</h2><input id="ce" type="email" placeholder="Correo del cliente"><input id="ca" type="number" step="0.01" min="0" placeholder="Cantidad (FRZ)">
+  <div class="btns"><button class="g" style="flex:1" id="cs">Enviar</button><button class="d" style="flex:1" id="cq">Quitar</button></div></div>
+  <div class="c">${cl.map(u => `<div class="row"><div><b>${esc(u.name)}</b> ${u.is_admin ? '👑' : ''}<br><span class="mut">${esc(u.email)} · ${esc(u.phone)}</span></div>
   <div>${fmt(u.credits)} FRZ · <span class="${u.verified ? 'ok' : 'pendiente'}">${u.verified ? 'verificado' : 'código: ' + code(u.id)}</span> ${u.banned ? '<span class="bad">· baneado</span>' : ''}</div>
   <div class="btns"><button class="s" data-c="${u.id}">± Créditos</button><button class="s" data-k="${u.id}">Clave</button>
   ${u.verified ? '' : `<button class="s g" data-vf="${u.id}">Verificar</button>`}
   <button class="s" data-a="${u.id}">${u.is_admin ? 'Quitar admin' : 'Hacer admin'}</button><button class="s d" data-b="${u.id}">${u.banned ? 'Desbanear' : 'Banear'}</button></div></div>`).join('')}</div>`;
+  const mover = sign => {
+    const em = $('#ce').value.trim().toLowerCase(), n = Math.abs(+$('#ca').value);
+    const u = cl.find(x => (x.email || '').toLowerCase() === em);
+    if (!u) return alert('No existe un cliente con ese correo');
+    if (!n) return alert('Escribe una cantidad');
+    run(sb.rpc('admin_add_credits', { p_user: u.id, p_amount: sign * n }), () => { alert((sign > 0 ? 'Enviados ' : 'Quitados ') + fmt(n) + ' FRZ a ' + u.name); aClients(); });
+  };
+  $('#cs').onclick = () => mover(1);
+  $('#cq').onclick = () => mover(-1);
   const by = (a, f) => document.querySelectorAll(`[data-${a}]`).forEach(b => b.onclick = () => f(b.dataset[a], cl.find(u => u.id == b.dataset[a])));
   by('c', id => { const v = prompt('Créditos a enviar (usa negativo para quitar, ej. -2)'); if (v) run(sb.rpc('admin_add_credits', { p_user: id, p_amount: +v }), aClients); });
   by('k', id => { const v = prompt('Nueva contraseña (mín. 6)'); if (v) run(sb.rpc('admin_set_password', { p_user: id, p_pass: v }), () => alert('Contraseña cambiada')); });
