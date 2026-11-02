@@ -96,6 +96,8 @@ button.f{width:100%}button.s{background:#223054;padding:9px 12px;font-size:14px}
 .gate{min-height:85vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;animation:up .5s both}
 .gate svg{filter:drop-shadow(0 0 22px #ff7a1acc)}.gate ul{list-style:none;padding:0;margin:8px 0;text-align:left;color:var(--tx);line-height:2}
 .gate .go{max-width:360px}
+.toast{position:fixed;top:12px;left:12px;right:12px;max-width:520px;margin:0 auto;z-index:90;background:#1b2234;border:1px solid #ff9a1f;border-radius:16px;padding:12px 16px;box-shadow:0 10px 30px #000a;animation:drop .4s both}
+@keyframes drop{from{transform:translateY(-130%);opacity:0}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
@@ -129,7 +131,7 @@ async function boot() {
   if (!me.verified) return verifyView();
   tab = 'tienda'; shell();
 }
-const logout = async () => { await sb.auth.signOut(); boot(); };
+const logout = async () => { stopWatch(); me = null; await sb.auth.signOut(); boot(); };
 
 function authView(mode) {
   const reg = mode === 'reg';
@@ -191,18 +193,42 @@ async function askNotif() {
   alert(p === 'granted' ? '🔔 Notificaciones activadas' : 'Notificaciones bloqueadas. Actívalas en los ajustes del navegador.');
   if (p === 'granted') notif('Fire Zone', 'Notificaciones activadas ✅');
 }
-let seen = null, wt = null;
-function startWatch() { clearInterval(wt); seen = null; watch(); wt = setInterval(watch, 15000); }
-async function watch() {
+let lastN = null, wt = null, rch = null;
+function toast(t, b) {
+  const d = document.createElement('div'); d.className = 'toast';
+  d.innerHTML = `<b>${esc(t)}</b><br><span class="mut">${esc(b || '')}</span>`;
+  document.body.appendChild(d); setTimeout(() => d.remove(), 5000);
+}
+function stopWatch() { clearInterval(wt); if (rch) { sb.removeChannel(rch); rch = null; } lastN = null; }
+function startWatch() {
+  stopWatch(); pollN(); wt = setInterval(pollN, 12000);
+  rch = sb.channel('nf').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifs' }, () => pollN()).subscribe();
+}
+async function pollN() {
   if (!me) return;
-  const { data } = await sb.from('orders').select('id,status,label,user_id,price').order('id', { ascending: false }).limit(30);
+  const { data } = await sb.from('notifs').select('*').order('id', { ascending: false }).limit(20);
   if (!data) return;
-  const m = {}; data.forEach(o => m[o.id] = o.status);
-  if (seen) data.forEach(o => {
-    if (!(o.id in seen)) { if (me.is_admin && o.user_id !== me.id && o.status === 'pendiente') notif('🛒 Nuevo pedido #' + o.id, nice(o.label) + ' · ' + +o.price + ' FRZ'); }
-    else if (seen[o.id] !== o.status && o.user_id === me.id) notif(o.status === 'aceptado' ? '✅ Recarga entregada' : '❌ Pedido rechazado', nice(o.label) + ' · #' + o.id);
-  });
-  seen = m;
+  const key = 'fz_ln_' + me.id;
+  if (lastN === null) lastN = ld(key);
+  if (lastN === null) lastN = data.length ? data[0].id : 0;
+  const nw = data.filter(n => n.id > lastN).reverse();
+  if (!nw.length) return;
+  lastN = nw[nw.length - 1].id; sv(key, lastN);
+  if (nw.length > 4) { notif('Fire Zone', nw.length + ' notificaciones nuevas'); toast('Fire Zone', nw.length + ' notificaciones nuevas'); }
+  else nw.forEach(n => { notif(n.title, n.body); toast(n.title, n.body); });
+  if (tab === 'tienda' && $('#v') && !$('#rc')) store();
+}
+function notifGate() {
+  const denied = Notification.permission === 'denied';
+  app.innerHTML = head('<span id="out">Salir</span>') + `<div class="gate">${LOGO(80)}<h2>🔔 Activa las notificaciones</h2>
+  <p class="mut">Son obligatorias para usar Fire Zone: te avisamos cuando tu recarga llega, cuando recibes créditos y cuando verifican tu cuenta.</p>
+  ${denied ? '<div class="warn">Las notificaciones están bloqueadas. Ve a los <b>ajustes del navegador o de la app</b> &gt; Notificaciones y actívalas para este sitio. Luego toca “Ya las activé”.</div>' : ''}
+  <button class="go" id="nb">${denied ? 'Ya las activé' : '🔔 Activar notificaciones'}</button></div>`;
+  $('#out').onclick = logout;
+  $('#nb').onclick = async () => {
+    if (Notification.permission === 'default') await Notification.requestPermission();
+    if (Notification.permission === 'granted') { notif('Fire Zone', 'Notificaciones activadas ✅'); shell(); } else notifGate();
+  };
 }
 
 // ===== Pedido en pantalla completa =====
@@ -256,6 +282,7 @@ async function receipt(id) {
 
 // ===== Tienda =====
 function shell() {
+  if (canN() && Notification.permission !== 'granted') return notifGate();
   app.innerHTML = head(`<span id="bell">🔔</span>${me.is_admin ? '<span id="adm">Admin</span>' : ''}<span id="out">Salir</span>`) + `<h1>FREE FIRE</h1><div id="v"></div>`;
   $('#out').onclick = logout; $('#bell').onclick = askNotif;
   if (me.is_admin) $('#adm').onclick = () => { tab = tab === 'tienda' ? 'ofertas' : 'tienda'; tab === 'tienda' ? store() : admin(); };
