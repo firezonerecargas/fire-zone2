@@ -93,6 +93,9 @@ button.f{width:100%}button.s{background:#223054;padding:9px 12px;font-size:14px}
 .conf{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:55}
 .conf i{position:absolute;top:-20px;width:9px;height:14px;border-radius:2px;animation:fall linear forwards}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+.gate{min-height:85vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;animation:up .5s both}
+.gate svg{filter:drop-shadow(0 0 22px #ff7a1acc)}.gate ul{list-style:none;padding:0;margin:8px 0;text-align:left;color:var(--tx);line-height:2}
+.gate .go{max-width:360px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
@@ -377,7 +380,26 @@ async function aOrders() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
 
-boot();
+// ===== Obligar a instalar la app =====
+const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+if (standalone) sv('fz_inst', 1);
+let instEv = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); instEv = e; const b = $('#ib'), h = $('#how'); if (b) b.style.display = ''; if (h) h.style.display = 'none'; });
+window.addEventListener('appinstalled', () => { sv('fz_inst', 1); if ($('.gate')) gateDone(); });
+function gateDone() {
+  app.innerHTML = `<div class="gate">${LOGO(96)}<h2>✅ ¡App instalada!</h2><p class="mut">Ya puedes cerrar esta pestaña y abrir <b>Fire Zone</b> desde tu pantalla de inicio.</p></div>`;
+}
+function gate() {
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  app.innerHTML = `<div class="gate">${LOGO(96)}<h1 style="font-size:40px;margin:6px 0">FIRE ZONE</h1><h2>Descarga nuestra app</h2>
+  <p class="mut">Para usar Fire Zone Recargas debes instalar la app. Es gratis y muy ligera.</p>
+  <ul><li>⚡ Carga mucho más rápido</li><li>🔔 Te avisa cuando tu recarga llegue</li><li>🔥 Se abre como una app, desde tu pantalla</li></ul>
+  <button class="go" id="ib" style="display:${instEv ? '' : 'none'}">📲 Instalar app</button>
+  <div class="warn" id="how" style="display:${instEv ? 'none' : ''}">${ios ? 'Toca el botón <b>Compartir</b> (cuadro con flecha ↑) y elige <b>Añadir a pantalla de inicio</b>.' : 'Toca el menú <b>⋮</b> del navegador y elige <b>Instalar aplicación</b> (o <b>Añadir a pantalla de inicio</b>).'}</div>
+  <p class="mut" style="font-size:14px">¿Ya la instalaste? Ábrela desde tu pantalla de inicio.</p></div>`;
+  $('#ib').onclick = async () => { if (!instEv) return; instEv.prompt(); const r = await instEv.userChoice; if (r.outcome === 'accepted') { sv('fz_inst', 1); gateDone(); } };
+}
+(standalone || ld('fz_inst') || /[?&]admin\b/.test(location.search)) ? boot() : gate();
 </script>
 </body>
 </html>
