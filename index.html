@@ -3,32 +3,101 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Fire Zone</title>
+<title>Fire Zone Recargas</title>
+<meta name="theme-color" content="#070b1a">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="preconnect" href="https://hzsfajpxzezghnhhjnzi.supabase.co" crossorigin>
 <style>
 :root{--bg:#070b1a;--card:#111a33;--line:#25325a;--tx:#f1f3ff;--mut:#9aa6c8;--gold:#ffc94d;--ok:#7dffb0;--bad:#ff7d7d}
-*{box-sizing:border-box}
-body{margin:0;background:linear-gradient(#17224d,var(--bg) 380px) no-repeat var(--bg);color:var(--tx);font-family:Roboto,system-ui,sans-serif;min-height:100vh}
-.w{max-width:560px;margin:0 auto;padding:16px}
-header{display:flex;justify-content:space-between;align-items:center;font-weight:800;letter-spacing:1px;margin-bottom:8px}
-header span{color:var(--mut);font-weight:500;cursor:pointer;margin-left:14px;letter-spacing:0}
-h1{color:var(--gold);font-size:56px;line-height:1;margin:6px 0 18px;text-align:center;font-weight:900;text-shadow:0 0 24px #ff8a0055}
-h2{margin:0 0 10px}.c{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;margin-bottom:16px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:radial-gradient(900px 500px at 15% -5%,#2a3a8a55,transparent),radial-gradient(700px 500px at 100% 10%,#7a2a8a44,transparent),var(--bg);color:var(--tx);font-family:Roboto,system-ui,sans-serif;min-height:100vh;overflow-x:hidden}
+#bg{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+#bg i{position:absolute;bottom:-12px;width:5px;height:5px;border-radius:50%;background:#ff9a1f;box-shadow:0 0 10px 3px #ff7a1a88;opacity:0;animation:rise linear infinite}
+@keyframes rise{0%{transform:translateY(0) scale(1);opacity:0}15%{opacity:.8}100%{transform:translateY(-105vh) translateX(30px) scale(.3);opacity:0}}
+.w{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:16px 16px 100px;animation:up .5s both}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:1.5px;font-size:18px}
+.brand svg{filter:drop-shadow(0 0 10px #ff7a1a99);animation:glow 2.6s ease-in-out infinite}
+.brand b{color:var(--gold)}
+@keyframes glow{50%{filter:drop-shadow(0 0 18px #ff2d6fcc)}}
+.hr span{color:var(--mut);font-weight:500;cursor:pointer;margin-left:14px;font-size:15px}
+h1{font-size:56px;line-height:1;margin:6px 0 18px;text-align:center;font-weight:900;background:linear-gradient(90deg,#ffb52e,#fff1b0,#ff8a1a,#ffb52e);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 4s linear infinite;filter:drop-shadow(0 0 18px #ff8a0055)}
+@keyframes shine{to{background-position:300% 0}}
+h2{margin:0 0 10px}
+.c{background:linear-gradient(#131c38,#0f1730);border:1px solid var(--line);border-radius:22px;padding:20px;margin-bottom:16px;box-shadow:0 10px 30px #0006;animation:up .5s both}
 .mut{color:var(--mut)}.big{font-size:44px;font-weight:800}
-input,select{width:100%;padding:15px;margin:6px 0 10px;background:#0a1027;border:1px solid var(--line);border-radius:14px;color:var(--tx);font-size:16px}
-button{font:inherit;font-weight:700;border:0;border-radius:14px;padding:13px;cursor:pointer;color:#fff;background:linear-gradient(90deg,#2c4a9b,#463391)}
+.bal{display:flex;align-items:center;gap:14px}
+.coin{filter:drop-shadow(0 0 8px #ff9a1f88);animation:coin 2.6s ease-in-out infinite;flex:none}
+@keyframes coin{50%{transform:scale(1.09)}}
+input{width:100%;padding:15px;margin:6px 0 10px;background:#0a1027;border:1px solid var(--line);border-radius:14px;color:var(--tx);font-size:16px;transition:border .2s,box-shadow .2s}
+input:focus{outline:0;border-color:#ff9a1f;box-shadow:0 0 0 3px #ff9a1f33}
+button{font:inherit;font-weight:700;border:0;border-radius:14px;padding:13px;cursor:pointer;color:#fff;background:linear-gradient(90deg,#2c4a9b,#463391);transition:transform .15s,filter .2s}
+button:active{transform:scale(.96)}button:disabled{opacity:.6}
 button.f{width:100%}button.s{background:#223054;padding:9px 12px;font-size:14px}button.d{background:#6b2a3a}button.g{background:#1d5a40}
+.warn{background:#3a2a0a;border:1px solid #c8861a;border-radius:16px;padding:12px 14px;color:#ffe3a3;font-size:14px;line-height:1.4;margin:0 0 10px;animation:wp 2.5s infinite}
+@keyframes wp{50%{box-shadow:0 0 14px #c8861a66}}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.o{background:#0a1027;border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;gap:12px;font-size:20px;font-weight:700}
-.o b{color:var(--gold);font-size:22px}
+.o{position:relative;overflow:hidden;background:#0a1027;border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;gap:12px;font-size:20px;font-weight:700;animation:up .5s both;transition:transform .15s}
+.o:active{transform:scale(.97)}
+.o::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,#fff2,transparent);transform:skewX(-20deg);animation:sweep 5s infinite}
+@keyframes sweep{0%,60%{left:-60%}100%{left:140%}}
+.o b{color:var(--gold);font-size:19px;display:flex;align-items:center;gap:6px}
+.sk{height:120px;background:linear-gradient(90deg,#111a33,#1a2447,#111a33);background-size:200% 100%;animation:sk 1.2s infinite}
+@keyframes sk{to{background-position:-200% 0}}
+.row{border-top:1px solid var(--line);padding:12px 0;display:flex;flex-direction:column;gap:8px}
 .tag{display:inline-block;padding:5px 12px;border-radius:99px;font-size:13px;font-weight:700;background:#1b2447}
 .pendiente{color:var(--gold)}.aceptado,.ok{color:var(--ok)}.rechazado,.bad{color:var(--bad)}
-.row{border-top:1px solid var(--line);padding:12px 0;display:flex;flex-direction:column;gap:8px}
 .btns{display:flex;gap:6px;flex-wrap:wrap}.tabs{display:flex;gap:8px;margin-bottom:14px}.tabs button{flex:1;background:#18213f}.tabs .on{background:#c8861a}
-.msg{min-height:20px;color:var(--bad);margin:6px 0}
-a{color:var(--gold);cursor:pointer}
+.msg{min-height:20px;color:var(--bad);margin:6px 0}a{color:var(--gold);cursor:pointer}
+#sup{position:fixed;right:14px;bottom:18px;z-index:60;width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:grid;place-items:center;box-shadow:0 8px 24px #16a34a88;padding:0;animation:bob 3s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-5px)}}
+#rc{position:fixed;inset:0;z-index:50;overflow:auto;background:radial-gradient(800px 500px at 50% -10%,#2a3a8a99,transparent),#070b1a;animation:fade .3s}
+#rc.ok{background:radial-gradient(800px 500px at 50% -10%,#14a36d77,transparent),#070b1a}
+#rc.bad{background:radial-gradient(800px 500px at 50% -10%,#a3243b77,transparent),#070b1a}
+@keyframes fade{from{opacity:0}}
+.rcin{max-width:520px;margin:0 auto;padding:18px 16px 120px}
+.min{display:block;margin:0 0 6px auto;background:#2a2118;border:1px solid #4a3b2a;padding:12px 18px}
+.rt{text-align:center;font-size:30px;line-height:1.1;margin:18px 0 6px;color:#5aa0ff;font-weight:900}
+#rc.ok .rt{color:#28d27a}#rc.bad .rt{color:#ff6b7d}
+.tk{background:#111827;border:1px solid #232c45;border-radius:30px;overflow:hidden;margin-top:18px;animation:pop .6s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes pop{from{opacity:0;transform:scale(.9) translateY(20px)}}
+.hero{position:relative;text-align:center;padding:30px 16px 24px;background:linear-gradient(160deg,#2f6bf0,#7b3ae8)}
+.hero.ok{background:linear-gradient(160deg,#16a56a,#119b9b)}.hero.bad{background:linear-gradient(160deg,#c9314a,#7d2a8a)}
+.gw{position:relative;width:130px;height:130px;margin:0 auto 12px;display:grid;place-items:center}
+.ring{position:absolute;inset:0;animation:spin 2.2s linear infinite}.hero.ok .ring,.hero.bad .ring{display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.gem{animation:float 2.4s ease-in-out infinite;filter:drop-shadow(0 6px 14px #0006)}
+@keyframes float{50%{transform:translateY(-6px)}}
+.chk{position:absolute;right:4px;bottom:4px;width:36px;height:36px;border-radius:50%;background:#fff;color:#16a34a;display:grid;place-items:center;font-size:20px;animation:pop .5s .3s both}
+.k{letter-spacing:3px;font-size:13px;font-weight:700;opacity:.85}.nm{font-size:34px;font-weight:900;margin:4px 0}.stt{font-weight:800;font-size:18px}
+.stamp{position:absolute;top:18px;right:-8px;border:3px solid #fff;border-radius:12px;padding:6px 16px;font-weight:900;letter-spacing:2px;transform:rotate(8deg);animation:stamp .5s .2s both}
+@keyframes stamp{from{transform:rotate(8deg) scale(3);opacity:0}}
+.steps{display:flex;align-items:center;justify-content:space-between;padding:22px 16px 10px}
+.stp{display:flex;flex-direction:column;align-items:center;gap:8px;font-size:15px;font-weight:700;width:90px;text-align:center}
+.stp i{width:44px;height:44px;border-radius:50%;border:2px solid #2a3558;display:grid;place-items:center;font-style:normal;font-size:22px;color:#fff;background:#0b1020}
+.stp.done i{background:#22c55e;border-color:#22c55e}.stp.act i{border-color:#3b82f6;animation:pulse 1.4s infinite}.stp.fail i{background:#ef4444;border-color:#ef4444}
+.steps u{flex:1;height:3px;background:#2a3558;margin-bottom:28px;border-radius:2px}.steps u.done{background:#22c55e}
+@keyframes pulse{50%{box-shadow:0 0 0 8px #3b82f633}}
+.tot{display:flex;align-items:center;gap:16px;margin:12px 18px;padding:18px;background:#1b2234;border:1px solid #2a3350;border-radius:24px}
+.tot small,.g2 small{display:block;color:var(--mut);letter-spacing:2px;font-size:13px}.amt{font-size:40px;font-weight:900}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 18px}
+.g2>div{background:#1b2234;border:1px solid #2a3350;border-radius:18px;padding:14px}.g2 b{font-size:19px;word-break:break-word}
+.num{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;color:var(--mut)}.num b{color:#fff;font-size:30px}
+.thx{text-align:center;margin:24px 0 4px;font-size:26px;font-weight:900}
+.go{background:linear-gradient(90deg,#ff7a1a,#ff2d6f);font-size:20px;padding:20px;border-radius:22px;width:100%;margin-top:14px;box-shadow:0 8px 24px #ff2d6f55}
+.ghost{background:#0e1426;border:1px solid var(--line);width:100%;margin-top:12px;padding:20px;border-radius:22px;font-size:18px}
+.conf{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:55}
+.conf i{position:absolute;top:-20px;width:9px;height:14px;border-radius:2px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
 <body>
+<div id="bg"></div>
 <div class="w" id="app"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
@@ -44,7 +113,7 @@ const wa = t => window.open('https://wa.me/' + WA + '?text=' + encodeURIComponen
 const fmt = n => Number(n).toFixed(2);
 let me = null, tab = 'tienda';
 
-const head = (right = '') => `<header><div>🎮 FIRE ZONE</div><div>${right}</div></header>`;
+const head = (right = '') => `<header><div class="brand">${LOGO(38)}<span>FIRE <b>ZONE</b></span></div><div class="hr">${right}</div></header>`;
 const err = e => { const m = $('#m'); if (m) m.textContent = e.message || e; };
 
 async function boot() {
@@ -96,34 +165,139 @@ function verifyView() {
   };
 }
 
-function shell() {
-  app.innerHTML = head(`${me.is_admin ? '<span id="adm">Admin</span>' : ''}<span id="out">Salir</span>`) +
-    `<h1>FREE FIRE</h1><div id="v"></div>`;
-  $('#out').onclick = logout;
-  if (me.is_admin) $('#adm').onclick = () => { tab = tab === 'tienda' ? 'ofertas' : 'tienda'; tab === 'tienda' ? store() : admin(); };
-  store();
+const LOGO = s => `<svg width="${s}" height="${s}" viewBox="0 0 64 64"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9a1f"/><stop offset="1" stop-color="#ff2d6f"/></linearGradient></defs><rect width="64" height="64" rx="16" fill="url(#lg)"/><path d="M33 8c2 9 12 14 12 26a13 13 0 0 1-26 0c0-6 3-9 6-12 0 5 2 7 4 8-1-8 1-14 4-22z" fill="#fff"/><path d="M32 33c1 5 6 7 6 11a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3-.5-4 0-6 1-8z" fill="#ff7a1a"/></svg>`;
+const COIN = s => `<svg class="coin" width="${s}" height="${s}" viewBox="0 0 64 64"><defs><radialGradient id="cg" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#ffd36b"/><stop offset=".6" stop-color="#ff9a1f"/><stop offset="1" stop-color="#c8560a"/></radialGradient></defs><circle cx="32" cy="32" r="30" fill="url(#cg)" stroke="#ffe3a3" stroke-width="2"/><circle cx="32" cy="32" r="24" fill="none" stroke="#fff5" stroke-width="1.5"/><path d="M33 10c1.5 6 8 9 8 16a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 1 5 3 5-1-5 0-9 3-13z" fill="#fff"/><text x="32" y="50" text-anchor="middle" font-size="13" font-weight="900" fill="#fff" font-family="Roboto,Arial">FRZ</text></svg>`;
+const GEM = `<svg viewBox="0 0 64 64" width="84" height="84"><defs><linearGradient id="gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c4f6ff"/><stop offset="1" stop-color="#2aa8ff"/></linearGradient></defs><path d="M18 8h28l14 16-28 34L4 24z" fill="url(#gg)" stroke="#e6fbff" stroke-width="1.5" stroke-linejoin="round"/><path d="M4 24h56M18 8l14 16 14-16M32 24v34M18 8l6 16 8 34M46 8l-6 16-8 34" fill="none" stroke="#fff9" stroke-width="1"/></svg>`;
+const ld = k => { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } };
+const sv = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+const nice = l => String(l).includes('💎') ? String(l).replace('💎', '').trim() + ' Diamantes' : l;
+const sup = () => wa('Hola, necesito soporte con Fire Zone.' + (curOrder ? ' Pedido #' + curOrder : ''));
+
+// ===== Notificaciones =====
+const canN = () => 'Notification' in window;
+async function notif(t, b) {
+  try {
+    if (!canN() || Notification.permission !== 'granted') return;
+    const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+    reg ? reg.showNotification(t, { body: b, icon: 'icon-192.png', badge: 'icon-192.png', vibrate: [200, 100, 200] }) : new Notification(t, { body: b });
+  } catch (e) {}
+}
+async function askNotif() {
+  if (!canN()) return alert('Tu navegador no soporta notificaciones');
+  const p = await Notification.requestPermission();
+  alert(p === 'granted' ? '🔔 Notificaciones activadas' : 'Notificaciones bloqueadas. Actívalas en los ajustes del navegador.');
+  if (p === 'granted') notif('Fire Zone', 'Notificaciones activadas ✅');
+}
+let seen = null, wt = null;
+function startWatch() { clearInterval(wt); seen = null; watch(); wt = setInterval(watch, 15000); }
+async function watch() {
+  if (!me) return;
+  const { data } = await sb.from('orders').select('id,status,label,user_id,price').order('id', { ascending: false }).limit(30);
+  if (!data) return;
+  const m = {}; data.forEach(o => m[o.id] = o.status);
+  if (seen) data.forEach(o => {
+    if (!(o.id in seen)) { if (me.is_admin && o.user_id !== me.id && o.status === 'pendiente') notif('🛒 Nuevo pedido #' + o.id, nice(o.label) + ' · ' + +o.price + ' FRZ'); }
+    else if (seen[o.id] !== o.status && o.user_id === me.id) notif(o.status === 'aceptado' ? '✅ Recarga entregada' : '❌ Pedido rechazado', nice(o.label) + ' · #' + o.id);
+  });
+  seen = m;
 }
 
-async function store() {
-  const [{ data: offers }, { data: orders }, { data: p }] = await Promise.all([
-    sb.from('offers').select('*').eq('active', true).order('sort'),
-    sb.from('orders').select('*').eq('user_id', me.id).order('created_at', { ascending: false }),
-    sb.from('profiles').select('credits').eq('id', me.id).single()]);
-  me.credits = p.credits;
-  $('#v').innerHTML = `<div class="c"><div class="mut">Saldo disponible</div><div class="big">${fmt(me.credits)} FRZ</div></div>
-  <div class="c"><h2>Free Fire · LATAM</h2><p class="mut">Confirma que la cuenta pertenece a LATAM y revisa bien el ID.</p>
-  <input id="pid" inputmode="numeric" placeholder="Escribe el ID numérico"><div class="msg" id="m"></div>
-  <div class="grid">${offers.map(o => `<div class="o"><div>${esc(o.label)}</div><b>${fmt(o.price)} FRZ</b><button data-o="${o.id}">Comprar</button></div>`).join('')}</div></div>
+// ===== Pedido en pantalla completa =====
+let rcT = null, rcLast = '', curOrder = null;
+function closeRc() { clearInterval(rcT); curOrder = null; const e = $('#rc'); if (e) e.remove(); if (tab === 'tienda' && $('#v')) store(); }
+function confetti() {
+  const w = document.createElement('div'); w.className = 'conf';
+  for (let i = 0; i < 46; i++) { const s = document.createElement('i'); s.style.cssText = `left:${Math.random() * 100}%;background:hsl(${Math.random() * 360},90%,60%);animation-delay:${Math.random() * 1.2}s;animation-duration:${2 + Math.random() * 2}s`; w.appendChild(s); }
+  document.body.appendChild(w); setTimeout(() => w.remove(), 5000);
+}
+const shareRc = o => {
+  const t = `Comprobante FIRE Zone\nPedido #${o.id}\n${nice(o.label)}\nID: ${o.player_id}\nTotal: ${+o.price} FRZ\nEstado: ${o.status}`;
+  navigator.share ? navigator.share({ text: t }).catch(() => {}) : (navigator.clipboard && navigator.clipboard.writeText(t), alert('Comprobante copiado'));
+};
+async function receipt(id) {
+  clearInterval(rcT); rcLast = ''; curOrder = id;
+  let ov = $('#rc'); if (!ov) { ov = document.createElement('div'); ov.id = 'rc'; document.body.appendChild(ov); }
+  ov.className = ''; ov.innerHTML = '<div class="rcin"><p class="mut" style="text-align:center;margin-top:40vh">Cargando…</p></div>';
+  const draw = async () => {
+    const { data: o } = await sb.from('orders').select('*').eq('id', id).single();
+    if (!o || curOrder !== id || o.status === rcLast) return;
+    const first = !rcLast; rcLast = o.status;
+    const ok = o.status === 'aceptado', bad = o.status === 'rechazado', cl = ok ? 'ok' : bad ? 'bad' : 'wait';
+    const fin = ok || bad;
+    ov.className = cl;
+    ov.innerHTML = `<div class="rcin">${ok ? '' : '<button class="min" id="mn">⌄ Minimizar</button>'}
+    <h2 class="rt">${ok ? '¡SU RECARGA SE HA REALIZADO CON ÉXITO!' : bad ? 'No pudimos completar su recarga' : 'Espere a que realicemos su recarga'}</h2>
+    ${fin ? '' : '<p class="mut" style="text-align:center;margin:0">Puede tardar hasta 10 minutos.</p>'}
+    <div class="tk"><div class="hero ${cl}">${ok ? '<div class="stamp">ENTREGADO</div>' : ''}
+      <div class="gw"><svg class="ring" viewBox="0 0 130 130"><circle cx="65" cy="65" r="60" fill="none" stroke="#fff3" stroke-width="6"/><circle cx="65" cy="65" r="60" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-dasharray="90 290"/></svg><div class="gem">${GEM}</div>${ok ? '<b class="chk">✓</b>' : ''}</div>
+      <div class="k">FREE FIRE LATAM &amp; USA</div><div class="nm">${esc(nice(o.label))}</div>
+      <div class="stt">${ok ? 'Entregado correctamente' : bad ? 'RECHAZADO · créditos devueltos' : 'EN PROCESO'}</div></div>
+    <div class="steps"><div class="stp done"><i>✓</i><span>Recibido</span></div><u class="done"></u>
+      <div class="stp ${fin ? 'done' : 'act'}"><i>${fin ? '✓' : ''}</i><span>En proceso</span></div><u class="${fin ? 'done' : ''}"></u>
+      <div class="stp ${ok ? 'done' : bad ? 'fail' : ''}"><i>${ok ? '✓' : bad ? '✕' : ''}</i><span>${bad ? 'Rechazado' : 'Entregado'}</span></div></div>
+    <div class="tot">${COIN(64)}<div><small>TOTAL PAGADO</small><div class="amt">${+o.price} FRZ</div></div></div>
+    <div class="g2"><div><small>ID</small><b>${esc(o.player_id)}</b></div><div><small>Cliente</small><b>${esc(me.name || '-')}</b></div>
+      <div><small>Fecha</small><b>${new Date(o.created_at).toLocaleString('es')}</b></div><div><small>Método</small><b>FRZ (créditos)</b></div></div>
+    <div class="num"><span>Número del pedido</span><b>#${o.id}</b></div></div>
+    ${ok ? '<div class="thx">¡Disfrute de su compra! 🔥</div><p class="mut" style="text-align:center;margin:0">Gracias por confiar en FIRE Zone Recargas</p>' : ''}
+    ${bad ? '<p class="mut" style="text-align:center">Tus créditos fueron devueltos. Si necesitas ayuda, escríbenos al soporte.</p>' : ''}
+    <button class="go" id="bk">Regresar</button><button class="ghost" id="sh">📤 Compartir comprobante</button></div>`;
+    $('#bk').onclick = closeRc; $('#sh').onclick = () => shareRc(o);
+    if ($('#mn')) $('#mn').onclick = closeRc;
+    if (ok && !first) { confetti(); if (navigator.vibrate) navigator.vibrate([200, 100, 200]); }
+    if (ok && first) confetti();
+    if (fin) clearInterval(rcT);
+  };
+  await draw(); rcT = setInterval(draw, 4000);
+}
+
+// ===== Tienda =====
+function shell() {
+  app.innerHTML = head(`<span id="bell">🔔</span>${me.is_admin ? '<span id="adm">Admin</span>' : ''}<span id="out">Salir</span>`) + `<h1>FREE FIRE</h1><div id="v"></div>`;
+  $('#out').onclick = logout; $('#bell').onclick = askNotif;
+  if (me.is_admin) $('#adm').onclick = () => { tab = tab === 'tienda' ? 'ofertas' : 'tienda'; tab === 'tienda' ? store() : admin(); };
+  store(); startWatch();
+}
+
+function drawStore(offers, orders) {
+  if (tab !== 'tienda' || !$('#v')) return;
+  const pid = ($('#pid') || {}).value || '', pid2 = ($('#pid2') || {}).value || '';
+  $('#v').innerHTML = `<div class="c"><div class="mut">Saldo disponible</div><div class="bal">${COIN(46)}<div class="big">${fmt(me.credits)} FRZ</div></div></div>
+  <div class="c"><h2>Free Fire · LATAM</h2>
+  <div class="warn">⚠️ <b>Por favor, pegue su ID correctamente.</b> Si lo pone mal es posible que pierda sus créditos y no nos hacemos responsables. Siempre contacte con el soporte si algo anda mal.</div>
+  <input id="pid" inputmode="numeric" placeholder="Escribe el ID numérico"><input id="pid2" inputmode="numeric" placeholder="Repite el ID para confirmar"><div class="msg" id="m"></div>
+  <div class="grid">${offers.map((o, i) => `<div class="o" style="animation-delay:${i * 60}ms"><div>${esc(o.label)}</div><b>${COIN(20)}${fmt(o.price)} FRZ</b><button data-o="${o.id}">Comprar</button></div>`).join('')}</div></div>
   <div class="c"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Mis pedidos</h2><button class="s" id="rf">Actualizar</button></div>
-  ${orders.map(o => `<div class="row"><div><b>${esc(o.label)}</b> · ${fmt(o.price)} FRZ</div><div class="mut">ID ${esc(o.player_id)} · ${new Date(o.created_at).toLocaleString('es')}</div><div><span class="tag ${o.status}">${o.status}</span></div></div>`).join('') || '<p class="mut">Aún no tienes pedidos.</p>'}</div>`;
+  ${orders.map(o => `<div class="row" data-r="${o.id}" style="cursor:pointer"><div><b>${esc(nice(o.label))}</b> · ${+o.price} FRZ</div><div class="mut">ID ${esc(o.player_id)} · ${new Date(o.created_at).toLocaleString('es')}</div><div><span class="tag ${o.status}">${o.status}</span> <span class="mut">Ver recibo ›</span></div></div>`).join('') || '<p class="mut">Aún no tienes pedidos.</p>'}</div>`;
+  $('#pid').value = pid; $('#pid2').value = pid2;
   $('#rf').onclick = store;
+  document.querySelectorAll('[data-r]').forEach(r => r.onclick = () => receipt(+r.dataset.r));
   document.querySelectorAll('[data-o]').forEach(b => b.onclick = async () => {
     const id = $('#pid').value.trim();
     if (!/^\d{5,15}$/.test(id)) return err('Escribe un ID numérico válido');
-    if (!confirm('¿Comprar para el ID ' + id + '?')) return;
+    if (id !== $('#pid2').value.trim()) return err('Los dos ID no coinciden');
+    if (!confirm('¿Comprar para el ID ' + id + '?\n\n⚠️ Si el ID es incorrecto es posible que pierda sus créditos y no nos hacemos responsables. Ante cualquier problema, contacte con el soporte.')) return;
+    if (canN() && Notification.permission === 'default') Notification.requestPermission();
+    b.disabled = true; b.textContent = 'Procesando…';
     const { error } = await sb.rpc('place_order', { p_offer: +b.dataset.o, p_player: id });
-    error ? err(error) : store();
+    if (error) { b.disabled = false; b.textContent = 'Comprar'; return err(error); }
+    const { data: last } = await sb.from('orders').select('id').eq('user_id', me.id).order('id', { ascending: false }).limit(1).single();
+    $('#pid').value = ''; $('#pid2').value = '';
+    if (last) receipt(last.id);
   });
+}
+
+async function store() {
+  if (!$('#v')) return;
+  const co = ld('fz_o'), cr = ld('fz_r_' + me.id);
+  if (co) drawStore(co, cr || []); else $('#v').innerHTML = '<div class="c sk"></div><div class="c sk"></div>';
+  const [{ data: offers }, { data: orders }, { data: p }] = await Promise.all([
+    sb.from('offers').select('*').eq('active', true).order('sort'),
+    sb.from('orders').select('*').eq('user_id', me.id).order('created_at', { ascending: false }).limit(30),
+    sb.from('profiles').select('credits').eq('id', me.id).single()]);
+  if (!offers) return;
+  me.credits = p.credits; sv('fz_o', offers); sv('fz_r_' + me.id, orders);
+  drawStore(offers, orders);
 }
 
 function admin() {
@@ -192,6 +366,16 @@ async function aOrders() {
   ${o.status === 'pendiente' && !['enviando', 'proceso'].includes(o.pz_state) ? `<div class="btns"><button class="s g" data-s="aceptado" data-i="${o.id}">Aceptar</button><button class="s d" data-s="rechazado" data-i="${o.id}">Rechazar (reembolsa)</button></div>` : ''}</div>`).join('') || '<p class="mut">Sin pedidos.</p>'}</div>`;
   document.querySelectorAll('[data-i]').forEach(b => b.onclick = () => run(sb.rpc('admin_set_order', { p_id: +b.dataset.i, p_status: b.dataset.s }), aOrders));
 }
+
+// ===== Extras: brasas, botón de soporte, app instalable =====
+(() => {
+  const bg = $('#bg');
+  for (let i = 0; i < 16; i++) { const e = document.createElement('i'); e.style.cssText = `left:${Math.random() * 100}%;animation-duration:${6 + Math.random() * 8}s;animation-delay:${Math.random() * 8}s`; bg.appendChild(e); }
+  const b = document.createElement('button'); b.id = 'sup'; b.title = 'Soporte';
+  b.innerHTML = '<svg width="34" height="34" viewBox="0 0 24 24" fill="#fff"><path d="M12 3C6.5 3 2 6.9 2 11.7c0 2.4 1.1 4.5 2.9 6.1L4 21l3.6-1.6c1.4.4 2.9.6 4.4.6 5.5 0 10-3.9 10-8.7S17.5 3 12 3zm-4 9.5a1.2 1.2 0 110-2.4 1.2 1.2 0 010 2.4zm4 0a1.2 1.2 0 110-2.4 1.2 1.2 0 010 2.4zm4 0a1.2 1.2 0 110-2.4 1.2 1.2 0 010 2.4z"/></svg>';
+  b.onclick = sup; document.body.appendChild(b);
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
 
 boot();
 </script>
