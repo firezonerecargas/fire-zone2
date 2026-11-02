@@ -17,5 +17,5 @@ self.addEventListener('notificationclick', e => {
 // Notificaciones push reales (se activan cuando se conecte el servidor de push)
 self.addEventListener('push', e => {
   let d = {}; try { d = e.data.json(); } catch (x) {}
-  e.waitUntil(self.registration.showNotification(d.title || 'Fire Zone', { body: d.body || '', icon: 'icon-192.png', badge: 'icon-192.png', vibrate: [200, 100, 200] }));
+  e.waitUntil(clients.matchAll({ type: 'window' }).then(l => l.some(c => c.visibilityState === 'visible') ? null : self.registration.showNotification(d.title || 'Fire Zone', { body: d.body || '', icon: 'icon-192.png', badge: 'icon-192.png', vibrate: [200, 100, 200] })));
 });
