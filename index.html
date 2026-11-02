@@ -135,14 +135,25 @@ const run = async (p, then) => { const { error } = await p; error ? alert(error.
 
 async function aOffers() {
   const { data } = await sb.from('offers').select('*').order('sort');
-  $('#a').innerHTML = `<div class="c"><h2>Nueva oferta</h2><input id="l" placeholder="Nombre (ej. 572 💎)"><input id="pr" type="number" step="0.01" placeholder="Precio en FRZ"><button class="f" id="add">Añadir oferta</button></div>
-  <div class="c">${data.map(o => `<div class="row"><div><b>${esc(o.label)}</b> · ${fmt(o.price)} FRZ ${o.active ? '' : '<span class="bad">(oculta)</span>'}</div>
-  <div class="btns"><button class="s" data-p="${o.id}">Cambiar precio</button><button class="s" data-v="${o.id}">${o.active ? 'Ocultar' : 'Mostrar'}</button><button class="s d" data-x="${o.id}">Borrar</button></div></div>`).join('')}</div>`;
+  $('#a').innerHTML = `<div class="c"><h2>Catálogo Play Zone</h2><button class="f" id="pzc">Ver catálogo e IDs</button><div id="cat" class="mut"></div></div><div class="c"><h2>Nueva oferta</h2><input id="l" placeholder="Nombre (ej. 572 💎)"><input id="pr" type="number" step="0.01" placeholder="Precio en FRZ"><button class="f" id="add">Añadir oferta</button></div>
+  <div class="c">${data.map(o => `<div class="row"><div><b>${esc(o.label)}</b> · ${fmt(o.price)} FRZ ${o.active ? '' : '<span class="bad">(oculta)</span>'}<br><span class="mut">${o.pz_product_id ? '🤖 Automática · Play Zone ID ' + o.pz_product_id : '✋ Manual'}</span></div>
+  <div class="btns"><button class="s" data-p="${o.id}">Cambiar precio</button><button class="s" data-z="${o.id}">ID Play Zone</button><button class="s" data-v="${o.id}">${o.active ? 'Ocultar' : 'Mostrar'}</button><button class="s d" data-x="${o.id}">Borrar</button></div></div>`).join('')}</div>`;
   $('#add').onclick = () => $('#l').value && run(sb.from('offers').insert({ label: $('#l').value, price: +$('#pr').value, sort: data.length + 1 }), aOffers);
   const by = (a, f) => document.querySelectorAll(`[data-${a}]`).forEach(b => b.onclick = () => f(+b.dataset[a], data.find(o => o.id == b.dataset[a])));
   by('p', (id, o) => { const v = prompt('Nuevo precio (FRZ)', o.price); if (v) run(sb.from('offers').update({ price: +v }).eq('id', id), aOffers); });
   by('v', (id, o) => run(sb.from('offers').update({ active: !o.active }).eq('id', id), aOffers));
   by('x', id => confirm('¿Borrar oferta?') && run(sb.from('offers').delete().eq('id', id), aOffers));
+  by('z', (id, o) => { const v = prompt('ID del producto en Play Zone (vacío = manual)', o.pz_product_id || ''); if (v !== null) run(sb.from('offers').update({ pz_product_id: v.trim() ? +v : null }).eq('id', id), aOffers); });
+  $('#pzc').onclick = async () => {
+    const c = $('#cat'); c.textContent = 'Cargando…';
+    const a = await sb.rpc('pz_catalog_req'); if (a.error) return c.textContent = a.error.message;
+    for (let i = 0; i < 6; i++) {
+      await new Promise(r => setTimeout(r, 2500));
+      const { data: j } = await sb.rpc('pz_catalog_get');
+      if (j) return c.innerHTML = (j.Categorias || []).map(k => `<b style="color:var(--gold)">${esc(k.Categoria_name)}</b>` + k.Productos.map(p => `<div class="row">${esc(p.Name)} · ${p.Precio} USD<br>ID: <b style="color:var(--tx)">${p.id}</b> · pide: ${esc((p.Requerido || []).join(', '))}</div>`).join('')).join('') || esc(j.Error || 'Sin datos');
+    }
+    c.textContent = 'Sin respuesta, intenta de nuevo';
+  };
 }
 
 async function aClients() {
@@ -177,7 +188,8 @@ async function aOrders() {
   $('#a').innerHTML = `<div class="c">${data.map(o => `<div class="row"><div><b>${esc(o.label)}</b> · ${fmt(o.price)} FRZ</div>
   <div class="mut">ID jugador: <b style="color:var(--tx)">${esc(o.player_id)}</b><br>${esc(o.profiles?.name)} · ${esc(o.profiles?.email)}<br>${new Date(o.created_at).toLocaleString('es')}</div>
   <div><span class="tag ${o.status}">${o.status}</span></div>
-  ${o.status === 'pendiente' ? `<div class="btns"><button class="s g" data-s="aceptado" data-i="${o.id}">Aceptar</button><button class="s d" data-s="rechazado" data-i="${o.id}">Rechazar (reembolsa)</button></div>` : ''}</div>`).join('') || '<p class="mut">Sin pedidos.</p>'}</div>`;
+  ${o.pz_state ? `<div class="mut">🤖 Auto: ${esc(o.pz_state)} ${esc(o.pz_note || '')}</div>` : ''}
+  ${o.status === 'pendiente' && !['enviando', 'proceso'].includes(o.pz_state) ? `<div class="btns"><button class="s g" data-s="aceptado" data-i="${o.id}">Aceptar</button><button class="s d" data-s="rechazado" data-i="${o.id}">Rechazar (reembolsa)</button></div>` : ''}</div>`).join('') || '<p class="mut">Sin pedidos.</p>'}</div>`;
   document.querySelectorAll('[data-i]').forEach(b => b.onclick = () => run(sb.rpc('admin_set_order', { p_id: +b.dataset.i, p_status: b.dataset.s }), aOrders));
 }
 
