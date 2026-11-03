@@ -103,6 +103,8 @@ button.f{width:100%}button.s{background:#223054;padding:9px 12px;font-size:14px}
 .guide .arr{position:fixed;right:34px;bottom:12px;font-size:42px;animation:bounce 1s infinite}
 .guide .arr2{position:fixed;left:50%;margin-left:-16px;bottom:12px;font-size:42px;animation:bounce 1s infinite;opacity:.7}
 @keyframes bounce{50%{transform:translateY(12px)}}
+#dp{position:fixed;inset:0;z-index:52;overflow:auto;background:radial-gradient(800px 500px at 50% -10%,#8a5a1a88,transparent),#070b1a;animation:fade .3s}
+.tabs button{padding:12px 4px;font-size:15px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
@@ -271,6 +273,7 @@ async function receipt(id) {
   let ov = $('#rc'); if (!ov) { ov = document.createElement('div'); ov.id = 'rc'; document.body.appendChild(ov); }
   ov.className = ''; ov.innerHTML = '<div class="rcin"><p class="mut" style="text-align:center;margin-top:40vh">Cargando…</p></div>';
   const draw = async () => {
+    await sb.rpc('pz_check_order', { p_id: id });
     const { data: o } = await sb.from('orders').select('*').eq('id', id).single();
     if (!o || curOrder !== id || o.status === rcLast) return;
     const first = !rcLast; rcLast = o.status;
@@ -300,7 +303,7 @@ async function receipt(id) {
     if (ok && first) confetti();
     if (fin) clearInterval(rcT);
   };
-  await draw(); rcT = setInterval(draw, 4000);
+  await draw(); rcT = setInterval(draw, 3000);
 }
 
 // ===== Tienda =====
@@ -315,7 +318,7 @@ function shell() {
 function drawStore(offers, orders) {
   if (tab !== 'tienda' || !$('#v')) return;
   const pid = ($('#pid') || {}).value || '', pid2 = ($('#pid2') || {}).value || '';
-  $('#v').innerHTML = `<div class="c"><div class="mut">Saldo disponible</div><div class="bal">${COIN(46)}<div class="big">${fmt(me.credits)} FRZ</div></div></div>
+  $('#v').innerHTML = `<div class="c"><div class="mut">Saldo disponible</div><div class="bal">${COIN(46)}<div class="big">${fmt(me.credits)} FRZ</div></div><button class="go" id="rch" style="margin-top:14px;padding:14px;font-size:17px">💰 Depósito</button></div>
   <div class="c"><h2>Free Fire · LATAM</h2>
   <div class="warn">⚠️ <b>Por favor, pegue su ID correctamente.</b> Si lo pone mal es posible que pierda sus créditos y no nos hacemos responsables. Siempre contacte con el soporte si algo anda mal.</div>
   <input id="pid" inputmode="numeric" placeholder="Escribe el ID numérico"><input id="pid2" inputmode="numeric" placeholder="Repite el ID para confirmar"><div class="msg" id="m"></div>
@@ -323,7 +326,7 @@ function drawStore(offers, orders) {
   <div class="c"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Mis pedidos</h2><button class="s" id="rf">Actualizar</button></div>
   ${orders.map(o => `<div class="row" data-r="${o.id}" style="cursor:pointer"><div><b>${esc(nice(o.label))}</b> · ${+o.price} FRZ</div><div class="mut">ID ${esc(o.player_id)} · ${new Date(o.created_at).toLocaleString('es')}</div><div><span class="tag ${o.status}">${o.status}</span> <span class="mut">Ver recibo ›</span></div></div>`).join('') || '<p class="mut">Aún no tienes pedidos.</p>'}</div>`;
   $('#pid').value = pid; $('#pid2').value = pid2;
-  $('#rf').onclick = store;
+  $('#rf').onclick = store; $('#rch').onclick = depositView;
   document.querySelectorAll('[data-r]').forEach(r => r.onclick = () => receipt(+r.dataset.r));
   document.querySelectorAll('[data-o]').forEach(b => b.onclick = async () => {
     const id = $('#pid').value.trim();
@@ -353,10 +356,88 @@ async function store() {
   drawStore(offers, orders);
 }
 
+// ===== Depósito (USDT BEP20) =====
+let dpT = null;
+function closeDp() { clearInterval(dpT); const e = $('#dp'); if (e) e.remove(); if (tab === 'tienda' && $('#v') && !$('#rc')) store(); }
+const copy = (t, b) => { try { navigator.clipboard.writeText(t); const o = b.textContent; b.textContent = '✓ Copiado'; setTimeout(() => b.textContent = o, 1500); } catch (e) { prompt('Copia esto:', t); } };
+const dpShell = (title, inner) => { let ov = $('#dp'); if (!ov) { ov = document.createElement('div'); ov.id = 'dp'; document.body.appendChild(ov); } ov.innerHTML = `<div class="rcin"><button class="min" id="dx">✕ Cerrar</button><h2 class="rt" style="color:var(--gold)">${title}</h2>${inner}</div>`; $('#dx').onclick = closeDp; };
+async function depositView() {
+  clearInterval(dpT);
+  const { data: hist } = await sb.from('deposits').select('*').eq('user_id', me.id).order('id', { ascending: false }).limit(5);
+  dpShell('Depósito', `<p class="mut" style="text-align:center;margin:0 0 14px">Recarga créditos con <b>USDT (red BEP20)</b>.</p>
+  <div class="c"><div class="mut">¿Cuánto quieres depositar? (mínimo 0.1 USDT)</div>
+  <div class="btns" style="margin:10px 0">${[0.5, 1, 3, 5, 10].map(n => `<button class="s" data-amt="${n}">${n}</button>`).join('')}</div>
+  <input id="da" type="number" inputmode="decimal" step="0.01" min="0.1" placeholder="Otro monto"><div class="msg" id="dm"></div>
+  <button class="go" id="dg" style="margin-top:0">Continuar</button></div>
+  ${(hist || []).length ? '<div class="c"><h2>Recientes</h2>' + hist.map(h => `<div class="row"><div><b>${Number(h.pay_amount).toFixed(4)} USDT</b> → ${+h.credits} FRZ</div><div><span class="tag ${h.status === 'completado' ? 'aceptado' : 'pendiente'}">${h.status}</span> <span class="mut">${new Date(h.created_at).toLocaleString('es')}</span></div></div>`).join('') + '</div>' : ''}`);
+  document.querySelectorAll('[data-amt]').forEach(b => b.onclick = () => $('#da').value = b.dataset.amt);
+  $('#dg').onclick = async () => {
+    const a = +$('#da').value;
+    if (!(a >= 0.1)) return ($('#dm').textContent = 'El mínimo es 0.1 USDT');
+    $('#dg').disabled = true; $('#dg').textContent = 'Creando…';
+    const { data, error } = await sb.rpc('create_deposit', { p_amount: a });
+    if (error) { $('#dg').disabled = false; $('#dg').textContent = 'Continuar'; return ($('#dm').textContent = error.message); }
+    payView(data);
+  };
+}
+function payView(d) {
+  const amt = Number(d.pay_amount).toFixed(4);
+  dpShell('Realiza el pago', `<div class="warn">⚠️ Envía <b>EXACTAMENTE ${amt} USDT</b> por la red <b>BEP20 (BNB Smart Chain)</b>. Con otra red u otro monto no se acredita solo.</div>
+  <div class="c"><div class="mut">MONTO EXACTO</div><div class="big">${amt} <span style="font-size:20px">USDT</span></div><button class="s" id="c1">Copiar monto</button>
+  <div class="mut" style="margin-top:16px">DIRECCIÓN (BEP20)</div><div style="word-break:break-all;font-weight:700;margin:6px 0 10px">${esc(d.address)}</div><button class="s" id="c2">Copiar dirección</button></div>
+  <div class="c" style="text-align:center"><div class="mut">Recibirás</div><div class="bal" style="justify-content:center">${COIN(40)}<div class="amt">${+d.credits} FRZ</div></div></div>
+  <button class="go" id="yt">✅ Ya transferí</button><button class="ghost" id="ds">¿Problemas? Contactar soporte</button>`);
+  $('#c1').onclick = e => copy(amt, e.target); $('#c2').onclick = e => copy(d.address, e.target);
+  $('#ds').onclick = () => wa(`Hola, tengo un problema con mi depósito USDT. Pago #${d.id} · ${amt} USDT`);
+  $('#yt').onclick = () => hashView(d);
+}
+function hashView(d, msg) {
+  dpShell('Verificar pago', `<p class="mut" style="text-align:center">Pega el <b>hash de la transferencia</b> (TxID). En SafePal abre la transacción enviada y copia el <b>Hash</b>.</p>
+  <div class="c"><input id="hx" placeholder="0x…" autocapitalize="off" autocorrect="off" spellcheck="false"><button class="s" id="hp">📋 Pegar</button>
+  <div class="msg" id="hm">${esc(msg || '')}</div><button class="go" id="hg" style="margin-top:0">Listo</button><button class="ghost" id="hb">← Volver</button></div>`);
+  $('#hp').onclick = async () => { try { $('#hx').value = (await navigator.clipboard.readText()).trim(); } catch (e) { $('#hm').textContent = 'Pega el hash manualmente en el campo'; } };
+  $('#hb').onclick = () => payView(d);
+  $('#hg').onclick = async () => {
+    const h = $('#hx').value.trim();
+    if (!/^0x[0-9a-fA-F]{64}$/.test(h)) return ($('#hm').textContent = 'El hash debe empezar con 0x y tener 66 caracteres');
+    $('#hg').disabled = true;
+    const { error } = await sb.rpc('submit_deposit_tx', { p_id: d.id, p_tx: h });
+    if (error) { $('#hg').disabled = false; return ($('#hm').textContent = error.message); }
+    procView(d);
+  };
+}
+function procView(d) {
+  dpShell('En proceso', `<div class="tk"><div class="hero"><div class="gw"><svg class="ring" viewBox="0 0 130 130"><circle cx="65" cy="65" r="60" fill="none" stroke="#fff3" stroke-width="6"/><circle cx="65" cy="65" r="60" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-dasharray="90 290"/></svg><div class="gem">${COIN(80)}</div></div>
+  <div class="nm" style="font-size:26px">Verificando tu pago</div><div class="stt" id="ps">Tarda menos de 1 minuto…</div></div></div>
+  <p class="mut" style="text-align:center;margin-top:18px">No cierres esta pantalla. Si la cierras, tus créditos se acreditan igual en unos minutos.</p>`);
+  let n = 0;
+  clearInterval(dpT);
+  dpT = setInterval(async () => {
+    n++;
+    const { data: r } = await sb.rpc('check_deposit', { p_id: d.id });
+    if (!r || !$('#dp')) return;
+    if (r.state === 'ok') {
+      clearInterval(dpT);
+      dpShell('¡Pago recibido!', `<div class="tk"><div class="hero ok"><div class="stamp">ACREDITADO</div><div class="gw"><div class="gem">${COIN(90)}</div><b class="chk">✓</b></div>
+      <div class="nm">+${+d.credits} FRZ</div><div class="stt">Ya están en tu saldo</div></div></div><button class="go" id="bk">Regresar</button>`);
+      $('#bk').onclick = closeDp; confetti(); if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+    } else if (r.state === 'error') { clearInterval(dpT); hashView(d, r.msg); }
+    else if (n > 20 && $('#ps')) $('#ps').textContent = 'Está tardando más de lo normal… un momento más';
+  }, 3000);
+}
+async function aDeposits() {
+  const { data } = await sb.from('deposits').select('*, profiles(name,email)').order('id', { ascending: false }).limit(50);
+  $('#a').innerHTML = `<div class="c">${(data || []).map(o => `<div class="row"><div><b>${Number(o.pay_amount).toFixed(4)} USDT</b> → ${+o.credits} FRZ</div>
+  <div class="mut">${esc(o.profiles?.name)} · ${esc(o.profiles?.email)}<br>${new Date(o.created_at).toLocaleString('es')}${o.tx_hash ? '<br>Tx: ' + esc(o.tx_hash.slice(0, 18)) + '…' : ''}</div>
+  <div><span class="tag ${o.status === 'completado' ? 'aceptado' : 'pendiente'}">${o.status}</span></div>
+  ${o.status !== 'completado' ? `<div class="btns"><button class="s g" data-dc="${o.id}">Acreditar manual</button></div>` : ''}</div>`).join('') || '<p class="mut">Sin depósitos.</p>'}</div>`;
+  document.querySelectorAll('[data-dc]').forEach(b => b.onclick = () => confirm('¿Acreditar este depósito?') && run(sb.rpc('admin_confirm_deposit', { p_id: +b.dataset.dc }), aDeposits));
+}
+
 function admin() {
-  $('#v').innerHTML = `<div class="tabs">${['ofertas', 'clientes', 'pedidos'].map(t => `<button class="${t === tab ? 'on' : ''}" data-t="${t}">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div><div id="a"></div>`;
+  $('#v').innerHTML = `<div class="tabs">${['ofertas', 'clientes', 'pedidos', 'depositos'].map(t => `<button class="${t === tab ? 'on' : ''}" data-t="${t}">${({ depositos: 'USDT' })[t] || t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div><div id="a"></div>`;
   document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; admin(); });
-  ({ ofertas: aOffers, clientes: aClients, pedidos: aOrders })[tab]();
+  ({ ofertas: aOffers, clientes: aClients, pedidos: aOrders, depositos: aDeposits })[tab]();
 }
 const run = async (p, then) => { const { error } = await p; error ? alert(error.message) : then(); };
 
