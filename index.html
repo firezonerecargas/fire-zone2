@@ -40,19 +40,19 @@ button:active{transform:scale(.96)}button:disabled{opacity:.6}
 button.f{width:100%}button.s{background:#223054;padding:9px 12px;font-size:14px}button.d{background:#6b2a3a}button.g{background:#1d5a40}
 .warn{background:#3a2a0a;border:1px solid #c8861a;border-radius:16px;padding:12px 14px;color:#ffe3a3;font-size:14px;line-height:1.4;margin:0 0 10px;animation:wp 2.5s infinite}
 @keyframes wp{50%{box-shadow:0 0 14px #c8861a66}}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .o{position:relative;overflow:hidden;background:#0a1027;border:1px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;justify-content:space-between;gap:12px;font-size:20px;font-weight:700;animation:up .5s both;transition:transform .15s}
 .o:active{transform:scale(.97)}
 .o::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,#fff2,transparent);transform:skewX(-20deg);animation:sweep 5s infinite}
 @keyframes sweep{0%,60%{left:-60%}100%{left:140%}}
-.o b{color:var(--gold);font-size:19px;display:flex;align-items:center;gap:6px}
+.o b{color:var(--gold);font-size:17px;display:flex;align-items:center;gap:6px;white-space:nowrap}.o button{width:100%}
 .sk{height:120px;background:linear-gradient(90deg,#111a33,#1a2447,#111a33);background-size:200% 100%;animation:sk 1.2s infinite}
 @keyframes sk{to{background-position:-200% 0}}
 .row{border-top:1px solid var(--line);padding:12px 0;display:flex;flex-direction:column;gap:8px}
 .tag{display:inline-block;padding:5px 12px;border-radius:99px;font-size:13px;font-weight:700;background:#1b2447}
 .pendiente{color:var(--gold)}.aceptado,.ok{color:var(--ok)}.rechazado,.bad{color:var(--bad)}
 .btns{display:flex;gap:6px;flex-wrap:wrap}.tabs{display:flex;gap:8px;margin-bottom:14px}.tabs button{flex:1;background:#18213f}.tabs .on{background:#c8861a}
-.msg{min-height:20px;color:var(--bad);margin:6px 0}a{color:var(--gold);cursor:pointer}
+.msg{color:var(--bad);margin:6px 0}.msg:empty{display:none}a{color:var(--gold);cursor:pointer}
 #sup{position:fixed;right:14px;bottom:18px;z-index:60;width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);display:grid;place-items:center;box-shadow:0 8px 24px #16a34a88;padding:0;animation:bob 3s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-5px)}}
 #rc{position:fixed;inset:0;z-index:50;overflow:auto;background:radial-gradient(800px 500px at 50% -10%,#2a3a8a99,transparent),#070b1a;animation:fade .3s}
@@ -107,6 +107,9 @@ button.f{width:100%}button.s{background:#223054;padding:9px 12px;font-size:14px}
 .tabs button{padding:12px 4px;font-size:15px}
 .pm{display:flex;justify-content:space-between;align-items:center;width:100%;margin-top:12px;padding:20px 18px;border-radius:20px;background:#0e1426;border:1px solid var(--line);font-size:18px}
 .pm span{display:flex;align-items:center;gap:10px}.pm b{color:var(--gold)}.pm:disabled{opacity:.45}
+.mths{display:flex;gap:8px;margin:0 0 12px}
+.mths button{flex:1;background:#0e1426;border:1px solid var(--line);padding:12px 4px;font-size:15px}
+.mths .on{background:linear-gradient(90deg,#ff7a1a,#ff2d6f);border-color:transparent}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
@@ -323,19 +326,22 @@ function drawStore(offers, orders) {
   $('#v').innerHTML = `<div class="c"><div class="mut">Saldo disponible</div><div class="bal">${COIN(46)}<div class="big">${fmt(me.credits)} FRZ</div></div></div>
   <div class="c"><h2>Free Fire · LATAM</h2>
   <div class="warn">⚠️ <b>Por favor, pegue su ID correctamente.</b> Si lo pone mal es posible que pierda sus créditos y no nos hacemos responsables. Siempre contacte con el soporte si algo anda mal.</div>
+  <div class="mut" style="margin-bottom:8px">Método de pago</div>
+  <div class="mths"><button data-pm="credito" class="${payM === 'credito' ? 'on' : ''}">🪙 Crédito</button><button data-pm="usdt" class="${payM === 'usdt' ? 'on' : ''}">💵 USDT</button><button data-pm="saldo" class="${payM === 'saldo' ? 'on' : ''}">📱 Saldo</button></div>
   <input id="pid" inputmode="numeric" placeholder="Escribe el ID numérico"><input id="pid2" inputmode="numeric" placeholder="Repite el ID para confirmar"><div class="msg" id="m"></div>
-  <div class="grid">${offers.map((o, i) => `<div class="o" style="animation-delay:${i * 60}ms"><div>${esc(o.label)}</div><b>${COIN(20)}${fmt(o.price)} FRZ</b><button data-o="${o.id}">Comprar</button></div>`).join('')}</div></div>
+  <div class="grid">${offers.map((o, i) => `<div class="o" style="animation-delay:${i * 60}ms"><div>${esc(o.label)}</div><b>${priceTag(o)}</b><button data-o="${o.id}">Comprar</button></div>`).join('')}</div></div>
   <div class="c"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Mis pedidos</h2><button class="s" id="rf">Actualizar</button></div>
-  ${orders.map(o => `<div class="row" data-r="${o.id}" style="cursor:pointer"><div><b>${esc(nice(o.label))}</b> · ${paid(o)}</div><div class="mut">ID ${esc(o.player_id)} · ${new Date(o.created_at).toLocaleString('es')}</div><div><span class="tag ${o.status}">${o.status}</span> <span class="mut">Ver recibo ›</span></div></div>`).join('') || '<p class="mut">Aún no tienes pedidos.</p>'}</div>`;
+  ${orders.length ? '' : ''}${orders.map(o => `<div class="row" data-r="${o.id}" style="cursor:pointer"><div><b>${esc(nice(o.label))}</b> · ${paid(o)}</div><div class="mut">ID ${esc(o.player_id)} · ${new Date(o.created_at).toLocaleString('es')}</div><div><span class="tag ${o.status}">${o.status}</span> <span class="mut">Ver recibo ›</span></div></div>`).join('') || '<p class="mut">Aún no tienes pedidos.</p>'}</div><p class="mut" style="text-align:center;font-size:12px">Fire Zone · v5</p>`;
   $('#pid').value = pid; $('#pid2').value = pid2;
   $('#rf').onclick = store;
+  document.querySelectorAll('[data-pm]').forEach(b => b.onclick = () => { payM = b.dataset.pm; sv('fz_pm', payM); drawStore(offers, orders); });
   document.querySelectorAll('[data-r]').forEach(r => r.onclick = () => receipt(+r.dataset.r));
   document.querySelectorAll('[data-o]').forEach(b => b.onclick = () => {
     const id = $('#pid').value.trim();
     if (!/^\d{5,15}$/.test(id)) return err('Escribe un ID numérico válido');
     if (id !== $('#pid2').value.trim()) return err('Los dos ID no coinciden');
     if (canN() && Notification.permission === 'default') Notification.requestPermission();
-    methodSheet(offers.find(x => x.id == b.dataset.o), id);
+    payWith(offers.find(x => x.id == b.dataset.o), id, payM, b);
   });
 }
 
@@ -364,6 +370,25 @@ const dpShell = (title, inner) => { let ov = $('#dp'); if (!ov) { ov = document.
 const clearIds = () => { ['#pid', '#pid2'].forEach(s => { const e = $(s); if (e) e.value = ''; }); };
 function finishPay(r) { clearInterval(dpT); const e = $('#dp'); if (e) e.remove(); clearIds(); if (r && r.order_id) receipt(r.order_id); store(); }
 
+let payM = ld('fz_pm') || 'credito';
+const priceTag = o => payM === 'usdt' ? `💵 ${fmt(o.price)} USDT` : payM === 'saldo' ? `📱 ${Math.ceil(+o.price * SALDO_RATE)} saldo` : `${COIN(20)}${fmt(o.price)} FRZ`;
+async function payWith(o, pid, m, btn) {
+  const label = btn.textContent; btn.disabled = true;
+  const reset = msg => { btn.disabled = false; btn.textContent = label; if (msg) err(msg); };
+  if (m === 'credito') {
+    if (!confirm('¿Comprar ' + nice(o.label) + ' para el ID ' + pid + '?\n\n⚠️ Si el ID es incorrecto es posible que pierda sus créditos y no nos hacemos responsables. Ante cualquier problema, contacte con el soporte.')) return reset();
+    btn.textContent = 'Procesando…';
+    const { error } = await sb.rpc('place_order', { p_offer: +o.id, p_player: pid });
+    if (error) return reset(error);
+    const { data: last } = await sb.from('orders').select('id').eq('user_id', me.id).order('id', { ascending: false }).limit(1).single();
+    return finishPay(last ? { order_id: last.id } : null);
+  }
+  btn.textContent = 'Creando pago…';
+  const { data, error } = await sb.rpc('create_payment', { p_offer: +o.id, p_player: pid, p_method: m });
+  if (error) return reset(error);
+  btn.disabled = false; btn.textContent = label;
+  m === 'usdt' ? usdtView(data) : saldoView(data);
+}
 function methodSheet(o, pid) {
   const price = +o.price, enough = +me.credits >= price;
   dpShell('¿Cómo quieres pagar?', `<div class="c"><b style="font-size:22px">${esc(nice(o.label))}</b><div class="mut">Free Fire LATAM · ID <b style="color:var(--tx)">${esc(pid)}</b></div></div>
