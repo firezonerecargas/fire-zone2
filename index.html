@@ -98,6 +98,11 @@ button.f{width:100%}button.s{background:#223054;padding:9px 12px;font-size:14px}
 .gate .go{max-width:360px}
 .toast{position:fixed;top:12px;left:12px;right:12px;max-width:520px;margin:0 auto;z-index:90;background:#1b2234;border:1px solid #ff9a1f;border-radius:16px;padding:12px 16px;box-shadow:0 10px 30px #000a;animation:drop .4s both}
 @keyframes drop{from{transform:translateY(-130%);opacity:0}}
+.guide{position:fixed;inset:0;z-index:95;background:#070b1aee;backdrop-filter:blur(8px);display:flex;flex-direction:column;padding:28px 22px 110px;overflow:auto;animation:fade .3s}
+.guide ol{padding-left:22px;line-height:1.5;font-size:18px}.guide li{margin-bottom:14px}
+.guide .arr{position:fixed;right:34px;bottom:12px;font-size:42px;animation:bounce 1s infinite}
+.guide .arr2{position:fixed;left:50%;margin-left:-16px;bottom:12px;font-size:42px;animation:bounce 1s infinite;opacity:.7}
+@keyframes bounce{50%{transform:translateY(12px)}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
@@ -434,15 +439,24 @@ window.addEventListener('appinstalled', () => { sv('fz_inst', 1); if ($('.gate')
 function gateDone() {
   app.innerHTML = `<div class="gate">${LOGO(96)}<h2>✅ ¡App instalada!</h2><p class="mut">Ya puedes cerrar esta pestaña y abrir <b>Fire Zone</b> desde tu pantalla de inicio.</p></div>`;
 }
+function iosGuide() {
+  const g = document.createElement('div'); g.className = 'guide';
+  g.innerHTML = `<h2>📲 Instalar en iPhone</h2>
+  <ol><li>Toca los <b>tres puntos •••</b> abajo a la derecha. <span class="mut">(En iPhones más viejos, el botón <b>Compartir</b> ↑ abajo al centro.)</span></li>
+  <li>Toca <b>Compartir</b>.</li><li>Desliza hacia abajo y toca <b>Añadir a pantalla de inicio</b>.</li>
+  <li>Toca <b>Añadir</b>. Luego abre <b>Fire Zone</b> desde el icono nuevo en tu pantalla.</li></ol>
+  <button class="go" id="gx">Entendido</button><div class="arr2">⬇️</div><div class="arr">⬇️</div>`;
+  document.body.appendChild(g); g.querySelector('#gx').onclick = () => g.remove();
+}
 function gate() {
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
   app.innerHTML = `<div class="gate">${LOGO(96)}<h1 style="font-size:40px;margin:6px 0">FIRE ZONE</h1><h2>Descarga nuestra app</h2>
   <p class="mut">Para usar Fire Zone Recargas debes instalar la app. Es gratis y muy ligera.</p>
   <ul><li>⚡ Carga mucho más rápido</li><li>🔔 Te avisa cuando tu recarga llegue</li><li>🔥 Se abre como una app, desde tu pantalla</li></ul>
-  <button class="go" id="ib" style="display:${instEv ? '' : 'none'}">📲 Instalar app</button>
-  <div class="warn" id="how" style="display:${instEv ? 'none' : ''}">${ios ? 'Toca el botón <b>Compartir</b> (cuadro con flecha ↑) y elige <b>Añadir a pantalla de inicio</b>.' : 'Toca el menú <b>⋮</b> del navegador y elige <b>Instalar aplicación</b> (o <b>Añadir a pantalla de inicio</b>).'}</div>
+  <button class="go" id="ib" style="display:${instEv || ios ? '' : 'none'}">📲 ${ios && !instEv ? 'Cómo instalar en iPhone' : 'Instalar app'}</button>
+  <div class="warn" id="how" style="display:${instEv ? 'none' : ''}">${ios ? 'Toca <b>•••</b> (o <b>Compartir</b> ↑) &gt; <b>Compartir</b> &gt; <b>Añadir a pantalla de inicio</b>.' : 'Toca el menú <b>⋮</b> del navegador y elige <b>Instalar aplicación</b> (o <b>Añadir a pantalla de inicio</b>).'}</div>
   <p class="mut" style="font-size:14px">¿Ya la instalaste? Ábrela desde tu pantalla de inicio.</p></div>`;
-  $('#ib').onclick = async () => { if (!instEv) return; instEv.prompt(); const r = await instEv.userChoice; if (r.outcome === 'accepted') { sv('fz_inst', 1); gateDone(); } };
+  $('#ib').onclick = async () => { if (!instEv) { if (ios) iosGuide(); return; } instEv.prompt(); const r = await instEv.userChoice; if (r.outcome === 'accepted') { sv('fz_inst', 1); gateDone(); } };
 }
 (standalone || ld('fz_inst') || /[?&]admin\b/.test(location.search)) ? boot() : gate();
 </script>
