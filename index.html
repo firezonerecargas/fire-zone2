@@ -369,7 +369,8 @@ async function depositView() {
   <div class="btns" style="margin:10px 0">${[0.5, 1, 3, 5, 10].map(n => `<button class="s" data-amt="${n}">${n}</button>`).join('')}</div>
   <input id="da" type="number" inputmode="decimal" step="0.01" min="0.1" placeholder="Otro monto"><div class="msg" id="dm"></div>
   <button class="go" id="dg" style="margin-top:0">Continuar</button></div>
-  ${(hist || []).length ? '<div class="c"><h2>Recientes</h2>' + hist.map(h => `<div class="row"><div><b>${Number(h.pay_amount).toFixed(4)} USDT</b> → ${+h.credits} FRZ</div><div><span class="tag ${h.status === 'completado' ? 'aceptado' : 'pendiente'}">${h.status}</span> <span class="mut">${new Date(h.created_at).toLocaleString('es')}</span></div></div>`).join('') + '</div>' : ''}`);
+  ${(hist || []).length ? '<div class="c"><h2>Recientes</h2>' + hist.map(h => `<div class="row"><div><b>${+h.pay_amount} USDT</b> → ${+h.credits} FRZ</div><div><span class="tag ${h.status === 'completado' ? 'aceptado' : 'pendiente'}">${h.status}</span> <span class="mut">${new Date(h.created_at).toLocaleString('es')}</span></div>${h.status !== 'completado' ? `<div><button class="s g" data-rd="${h.id}">Ya transferí ›</button></div>` : ''}</div>`).join('') + '</div>' : ''}`);
+  document.querySelectorAll('[data-rd]').forEach(b => b.onclick = () => { const x = hist.find(y => y.id == b.dataset.rd); hashView({ id: x.id, pay_amount: x.pay_amount, credits: x.credits, address: '', expires_at: x.expires_at }); });
   document.querySelectorAll('[data-amt]').forEach(b => b.onclick = () => $('#da').value = b.dataset.amt);
   $('#dg').onclick = async () => {
     const a = +$('#da').value;
@@ -381,7 +382,7 @@ async function depositView() {
   };
 }
 function payView(d) {
-  const amt = Number(d.pay_amount).toFixed(4);
+  const amt = String(+d.pay_amount);
   dpShell('Realiza el pago', `<div class="warn">⚠️ Envía <b>EXACTAMENTE ${amt} USDT</b> por la red <b>BEP20 (BNB Smart Chain)</b>. Con otra red u otro monto no se acredita solo.</div>
   <div class="c"><div class="mut">MONTO EXACTO</div><div class="big">${amt} <span style="font-size:20px">USDT</span></div><button class="s" id="c1">Copiar monto</button>
   <div class="mut" style="margin-top:16px">DIRECCIÓN (BEP20)</div><div style="word-break:break-all;font-weight:700;margin:6px 0 10px">${esc(d.address)}</div><button class="s" id="c2">Copiar dirección</button></div>
@@ -396,7 +397,7 @@ function hashView(d, msg) {
   <div class="c"><input id="hx" placeholder="0x…" autocapitalize="off" autocorrect="off" spellcheck="false"><button class="s" id="hp">📋 Pegar</button>
   <div class="msg" id="hm">${esc(msg || '')}</div><button class="go" id="hg" style="margin-top:0">Listo</button><button class="ghost" id="hb">← Volver</button></div>`);
   $('#hp').onclick = async () => { try { $('#hx').value = (await navigator.clipboard.readText()).trim(); } catch (e) { $('#hm').textContent = 'Pega el hash manualmente en el campo'; } };
-  $('#hb').onclick = () => payView(d);
+  $('#hb').onclick = () => d.address ? payView(d) : depositView();
   $('#hg').onclick = async () => {
     const h = $('#hx').value.trim();
     if (!/^0x[0-9a-fA-F]{64}$/.test(h)) return ($('#hm').textContent = 'El hash debe empezar con 0x y tener 66 caracteres');
@@ -427,7 +428,7 @@ function procView(d) {
 }
 async function aDeposits() {
   const { data } = await sb.from('deposits').select('*, profiles(name,email)').order('id', { ascending: false }).limit(50);
-  $('#a').innerHTML = `<div class="c">${(data || []).map(o => `<div class="row"><div><b>${Number(o.pay_amount).toFixed(4)} USDT</b> → ${+o.credits} FRZ</div>
+  $('#a').innerHTML = `<div class="c">${(data || []).map(o => `<div class="row"><div><b>${+o.pay_amount} USDT</b> → ${+o.credits} FRZ</div>
   <div class="mut">${esc(o.profiles?.name)} · ${esc(o.profiles?.email)}<br>${new Date(o.created_at).toLocaleString('es')}${o.tx_hash ? '<br>Tx: ' + esc(o.tx_hash.slice(0, 18)) + '…' : ''}</div>
   <div><span class="tag ${o.status === 'completado' ? 'aceptado' : 'pendiente'}">${o.status}</span></div>
   ${o.status !== 'completado' ? `<div class="btns"><button class="s g" data-dc="${o.id}">Acreditar manual</button></div>` : ''}</div>`).join('') || '<p class="mut">Sin depósitos.</p>'}</div>`;
