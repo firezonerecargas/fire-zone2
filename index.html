@@ -134,7 +134,12 @@ const head = (right = '') => `<header><div class="brand">${LOGO(38)}<span>FIRE <
 const err = e => { const m = $('#m'); if (m) m.textContent = e.message || e; };
 
 async function boot() {
+  const { data: ms } = await sb.from('site_settings').select('k,v');
+  const g = k => ((ms || []).find(x => x.k === k) || {}).v || '';
   const { data: { session } } = await sb.auth.getSession();
+  let adm = false;
+  if (session) { const { data: pr } = await sb.from('profiles').select('is_admin').eq('id', session.user.id).single(); adm = !!(pr && pr.is_admin); }
+  if (g('maintenance') === 'on' && !adm) return maintView(g('maintenance_msg'), !!session);
   if (!session) return authView('login');
   const { data } = await sb.from('profiles').select('*').eq('id', session.user.id).single();
   me = data;
@@ -308,7 +313,7 @@ async function receipt(id) {
     if (ok && first) confetti();
     if (fin) clearInterval(rcT);
   };
-  await draw(); rcT = setInterval(draw, 3000);
+  await draw(); rcT = setInterval(draw, 1500);
 }
 
 // ===== Tienda =====
@@ -324,6 +329,7 @@ function drawStore(offers, orders) {
   if (tab !== 'tienda' || !$('#v')) return;
   const pid = ($('#pid') || {}).value || '', pid2 = ($('#pid2') || {}).value || '';
   $('#v').innerHTML = `<div class="c"><div class="mut">Saldo disponible</div><div class="bal">${COIN(46)}<div class="big">${fmt(me.credits)} FRZ</div></div></div>
+  <button class="go" id="dpb" style="margin:-4px 0 16px">💰 Depósito</button>
   <div class="c"><h2>Free Fire · LATAM</h2>
   <div class="warn">⚠️ <b>Por favor, pegue su ID correctamente.</b> Si lo pone mal es posible que pierda sus créditos y no nos hacemos responsables. Siempre contacte con el soporte si algo anda mal.</div>
   <div class="mut" style="margin-bottom:8px">Método de pago</div>
@@ -333,7 +339,7 @@ function drawStore(offers, orders) {
   <div class="c"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Mis pedidos</h2><button class="s" id="rf">Actualizar</button></div>
   ${orders.length ? '' : ''}${orders.map(o => `<div class="row" data-r="${o.id}" style="cursor:pointer"><div><b>${esc(nice(o.label))}</b> · ${paid(o)}</div><div class="mut">ID ${esc(o.player_id)} · ${new Date(o.created_at).toLocaleString('es')}</div><div><span class="tag ${o.status}">${o.status}</span> <span class="mut">Ver recibo ›</span></div></div>`).join('') || '<p class="mut">Aún no tienes pedidos.</p>'}</div><p class="mut" style="text-align:center;font-size:12px">Fire Zone · v5</p>`;
   $('#pid').value = pid; $('#pid2').value = pid2;
-  $('#rf').onclick = store;
+  $('#rf').onclick = store; $('#dpb').onclick = depositView;
   document.querySelectorAll('[data-pm]').forEach(b => b.onclick = () => { payM = b.dataset.pm; sv('fz_pm', payM); drawStore(offers, orders); });
   document.querySelectorAll('[data-r]').forEach(r => r.onclick = () => receipt(+r.dataset.r));
   document.querySelectorAll('[data-o]').forEach(b => b.onclick = () => {
@@ -414,7 +420,7 @@ function methodSheet(o, pid) {
 
 function usdtView(d) {
   const amt = String(+d.amount);
-  dpShell('Paga con USDT', `<div class="c"><b>${esc(nice(d.label))}</b> · ID ${esc(d.player_id)}</div>
+  dpShell('Paga con USDT', `<div class="c"><b>${esc(nice(d.label))}</b>${d.player_id ? ' · ID ' + esc(d.player_id) : ''}</div>
   <div class="warn">⚠️ Envía <b>EXACTAMENTE ${amt} USDT</b> por la red <b>BEP20 (BNB Smart Chain)</b>. Con otra red u otro monto no se acredita solo.</div>
   <div class="c"><div class="mut">MONTO EXACTO</div><div class="big">${amt} <span style="font-size:20px">USDT</span></div><button class="s" id="c1">Copiar monto</button>
   <div class="mut" style="margin-top:16px">DIRECCIÓN (BEP20)</div><div style="word-break:break-all;font-weight:700;margin:6px 0 10px">${esc(d.address)}</div><button class="s" id="c2">Copiar dirección</button></div>
@@ -440,7 +446,7 @@ function hashView(d, msg) {
 }
 function saldoView(d) {
   const amt = String(+d.amount);
-  dpShell('Paga con saldo móvil', `<div class="c"><b>${esc(nice(d.label))}</b> · ID ${esc(d.player_id)}</div>
+  dpShell('Paga con saldo móvil', `<div class="c"><b>${esc(nice(d.label))}</b>${d.player_id ? ' · ID ' + esc(d.player_id) : ''}</div>
   <div class="warn">📱 Envía <b>EXACTAMENTE ${amt} de saldo</b> al número de abajo. Luego toca “Ya envié”.</div>
   <div class="c"><div class="mut">MONTO</div><div class="big">${amt} <span style="font-size:20px">saldo</span></div><button class="s" id="c1">Copiar monto</button>
   <div class="mut" style="margin-top:16px">ENVIAR AL NÚMERO</div><div style="font-weight:800;font-size:26px;margin:6px 0 10px">${esc(d.address)}</div><button class="s" id="c2">Copiar número</button></div>
@@ -471,11 +477,54 @@ function procView(d, kind) {
     n++;
     const { data: r } = await sb.rpc('check_payment', { p_id: d.id });
     if (!r || !$('#dp')) return;
-    if (r.state === 'ok') finishPay(r);
+    if (r.state === 'ok') { if (d.isDep) depOk(d); else finishPay(r); }
     else if (r.state === 'retry') { clearInterval(dpT); usdt ? hashView(d, r.msg) : saldoConfirm(d, r.msg); }
     else if (r.state === 'error') { clearInterval(dpT); dpShell('Pago no verificado', `<div class="c"><p>${esc(r.msg)}</p></div><button class="ghost" id="sp">Contactar soporte</button>`); $('#sp').onclick = () => wa(`Hola, mi pago #${d.id} no fue verificado`); }
     else if (usdt && n > 20 && $('#ps')) $('#ps').textContent = 'Está tardando más de lo normal… un momento más';
-  }, usdt ? 3000 : 5000);
+  }, usdt ? 1000 : 2000);
+}
+let dm = 'usdt';
+function depositView() {
+  dm = 'usdt';
+  dpShell('💰 Depósito', `<div class="c"><div class="mut">¿Cuánto quieres depositar? (mínimo 0.1)</div>
+  <div class="btns" style="margin:10px 0">${[0.5, 1, 3, 5, 10].map(n => `<button class="s" data-da="${n}">${n}</button>`).join('')}</div>
+  <input id="da" type="number" inputmode="decimal" step="0.01" min="0.1" placeholder="Otro monto">
+  <div class="mths" style="margin-top:12px"><button data-dm="usdt" class="on">💵 USDT</button><button data-dm="saldo">📱 Saldo</button></div>
+  <div class="msg" id="dm2"></div><button class="go" id="dg" style="margin-top:0">Continuar</button></div>`);
+  document.querySelectorAll('[data-da]').forEach(b => b.onclick = () => $('#da').value = b.dataset.da);
+  document.querySelectorAll('[data-dm]').forEach(b => b.onclick = () => { dm = b.dataset.dm; document.querySelectorAll('[data-dm]').forEach(x => x.classList.toggle('on', x === b)); });
+  $('#dg').onclick = async () => {
+    const a = +$('#da').value;
+    if (!(a >= 0.1)) return ($('#dm2').textContent = 'El mínimo es 0.1');
+    $('#dg').disabled = true; $('#dg').textContent = 'Creando pago…';
+    const { data, error } = await sb.rpc('create_payment_dep', { p_amount: a, p_method: dm });
+    if (error) { $('#dg').disabled = false; $('#dg').textContent = 'Continuar'; return ($('#dm2').textContent = error.message); }
+    data.isDep = true;
+    dm === 'usdt' ? usdtView(data) : saldoView(data);
+  };
+}
+function depOk(d) {
+  clearInterval(dpT);
+  dpShell('¡Depósito acreditado!', `<div class="tk"><div class="hero ok"><div class="stamp">ACREDITADO</div><div class="gw"><div class="gem">${COIN(90)}</div><b class="chk">✓</b></div><div class="nm">+${+d.credits} FRZ</div><div class="stt">Ya están en tu saldo</div></div></div><button class="go" id="bk">Regresar</button>`);
+  $('#bk').onclick = closeDp; confetti(); if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+}
+function maintView(msg, logged) {
+  app.innerHTML = head(logged ? '<span id="out">Salir</span>' : '') + `<div class="gate">${LOGO(90)}<h2>🛠️ Estamos en mantenimiento</h2><p class="mut" style="font-size:18px">${esc(msg || 'Volvemos pronto.')}</p>${logged ? '' : '<button class="s" id="ad" style="margin-top:14px">Soy administrador</button>'}</div>`;
+  if ($('#out')) $('#out').onclick = logout;
+  if ($('#ad')) $('#ad').onclick = () => authView('login');
+}
+async function aWeb() {
+  const { data } = await sb.from('site_settings').select('k,v');
+  const g = k => ((data || []).find(x => x.k === k) || {}).v || '';
+  const on = g('maintenance') === 'on';
+  $('#a').innerHTML = `<div class="c"><h2>Estado de la web</h2>
+  <p style="font-size:22px;font-weight:800;color:${on ? 'var(--bad)' : 'var(--ok)'}">${on ? '🔴 APAGADA (mantenimiento)' : '🟢 ENCENDIDA'}</p>
+  <p class="mut">Con la web apagada, los clientes solo ven el mensaje y no pueden comprar ni depositar. Tú sigues entrando normal.</p>
+  <input id="mm" placeholder="Mensaje para los clientes" value="${esc(g('maintenance_msg'))}">
+  <div class="btns"><button class="s" id="mv">Guardar mensaje</button></div>
+  <button class="f ${on ? 'g' : 'd'}" id="mt" style="margin-top:12px">${on ? '🟢 Encender la web' : '🔴 Apagar la web'}</button></div>`;
+  $('#mv').onclick = () => run(sb.from('site_settings').upsert({ k: 'maintenance_msg', v: $('#mm').value.trim() || 'Volvemos pronto.' }), aWeb);
+  $('#mt').onclick = () => run(sb.from('site_settings').upsert([{ k: 'maintenance', v: on ? 'off' : 'on' }, { k: 'maintenance_msg', v: $('#mm').value.trim() || 'Volvemos pronto.' }]), aWeb);
 }
 async function aDeposits() {
   const { data } = await sb.from('payments').select('*, profiles(name,email)').order('id', { ascending: false }).limit(50);
@@ -488,9 +537,9 @@ async function aDeposits() {
 }
 
 function admin() {
-  $('#v').innerHTML = `<div class="tabs">${['ofertas', 'clientes', 'pedidos', 'depositos'].map(t => `<button class="${t === tab ? 'on' : ''}" data-t="${t}">${({ depositos: 'Pagos' })[t] || t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div><div id="a"></div>`;
+  $('#v').innerHTML = `<div class="tabs">${['ofertas', 'clientes', 'pedidos', 'depositos', 'web'].map(t => `<button class="${t === tab ? 'on' : ''}" data-t="${t}">${({ depositos: 'Pagos', web: 'Web' })[t] || t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div><div id="a"></div>`;
   document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; admin(); });
-  ({ ofertas: aOffers, clientes: aClients, pedidos: aOrders, depositos: aDeposits })[tab]();
+  ({ ofertas: aOffers, clientes: aClients, pedidos: aOrders, depositos: aDeposits, web: aWeb })[tab]();
 }
 const run = async (p, then) => { const { error } = await p; error ? alert(error.message) : then(); };
 
