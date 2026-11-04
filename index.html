@@ -355,17 +355,17 @@ async function store() {
   if (!$('#v')) return;
   const co = ld('fz_o'), cr = ld('fz_r_' + me.id);
   if (co) drawStore(co, cr || []); else $('#v').innerHTML = '<div class="c sk"></div><div class="c sk"></div>';
-  const [{ data: offers }, { data: orders }, { data: p }] = await Promise.all([
+  const [{ data: offers }, { data: orders }, { data: p }, { data: pc }] = await Promise.all([
     sb.from('offers').select('*').eq('active', true).order('sort'),
     sb.from('orders').select('*').eq('user_id', me.id).order('created_at', { ascending: false }).limit(30),
-    sb.from('profiles').select('credits').eq('id', me.id).single()]);
+    sb.from('profiles').select('credits').eq('id', me.id).single(), sb.rpc('pay_config')]);
   if (!offers) return;
-  me.credits = p.credits; sv('fz_o', offers); sv('fz_r_' + me.id, orders);
+  me.credits = p.credits; if (pc && pc.saldo_rate) SALDO_RATE = +pc.saldo_rate; sv('fz_o', offers); sv('fz_r_' + me.id, orders);
   drawStore(offers, orders);
 }
 
 // ===== Métodos de pago: Crédito, USDT (BEP20) y Saldo móvil =====
-const SALDO_RATE = 325; // solo para mostrar; el servidor usa el valor real (secrets.saldo_rate)
+let SALDO_RATE = 325; // solo para mostrar; el servidor usa el valor real (secrets.saldo_rate)
 const paid = o => o.pay_method === 'usdt' ? +o.pay_amount + ' USDT' : o.pay_method === 'saldo' ? +o.pay_amount + ' saldo' : +o.price + ' FRZ';
 const methodName = o => o.pay_method === 'usdt' ? 'USDT (BEP20)' : o.pay_method === 'saldo' ? 'Saldo móvil' : 'FRZ (créditos)';
 const pIcon = o => o.pay_method === 'usdt' ? '<div style="font-size:54px">💵</div>' : o.pay_method === 'saldo' ? '<div style="font-size:54px">📱</div>' : COIN(64);
@@ -544,10 +544,12 @@ function admin() {
 const run = async (p, then) => { const { error } = await p; error ? alert(error.message) : then(); };
 
 async function aOffers() {
-  const { data } = await sb.from('offers').select('*').order('sort');
-  $('#a').innerHTML = `<div class="c"><h2>Catálogo Play Zone</h2><button class="f" id="pzc">Ver catálogo e IDs</button><div id="cat" class="mut"></div></div><div class="c"><h2>Nueva oferta</h2><input id="l" placeholder="Nombre (ej. 572 💎)"><input id="pr" type="number" step="0.01" placeholder="Precio en FRZ"><button class="f" id="add">Añadir oferta</button></div>
-  <div class="c">${data.map(o => `<div class="row"><div><b>${esc(o.label)}</b> · ${fmt(o.price)} FRZ ${o.active ? '' : '<span class="bad">(oculta)</span>'}<br><span class="mut">${o.pz_product_id ? '🤖 Automática · Play Zone ID ' + o.pz_product_id : '✋ Manual'}</span></div>
+  const [{ data }, { data: pc }] = await Promise.all([sb.from('offers').select('*').order('sort'), sb.rpc('pay_config')]);
+  const rate = +((pc && pc.saldo_rate) || 325);
+  $('#a').innerHTML = `<div class="c"><h2>Tasa de saldo móvil</h2><p class="mut">1 FRZ = <b>${rate}</b> de saldo. Los precios en saldo se calculan solos. El precio en USDT es igual al de Crédito.</p><input id="rt" type="number" step="1" min="1" value="${rate}"><button class="f" id="rs">Guardar tasa</button></div><div class="c"><h2>Catálogo Play Zone</h2><button class="f" id="pzc">Ver catálogo e IDs</button><div id="cat" class="mut"></div></div><div class="c"><h2>Nueva oferta</h2><input id="l" placeholder="Nombre (ej. 572 💎)"><input id="pr" type="number" step="0.01" placeholder="Precio en FRZ"><button class="f" id="add">Añadir oferta</button></div>
+  <div class="c">${data.map(o => `<div class="row"><div><b>${esc(o.label)}</b> · ${fmt(o.price)} FRZ · ${Math.ceil(o.price * rate)} saldo ${o.active ? '' : '<span class="bad">(oculta)</span>'}<br><span class="mut">${o.pz_product_id ? '🤖 Automática · Play Zone ID ' + o.pz_product_id : '✋ Manual'}</span></div>
   <div class="btns"><button class="s" data-p="${o.id}">Cambiar precio</button><button class="s" data-z="${o.id}">ID Play Zone</button><button class="s" data-v="${o.id}">${o.active ? 'Ocultar' : 'Mostrar'}</button><button class="s d" data-x="${o.id}">Borrar</button></div></div>`).join('')}</div>`;
+  $('#rs').onclick = () => run(sb.rpc('admin_set_rate', { p_rate: +$('#rt').value }), aOffers);
   $('#add').onclick = () => $('#l').value && run(sb.from('offers').insert({ label: $('#l').value, price: +$('#pr').value, sort: data.length + 1 }), aOffers);
   const by = (a, f) => document.querySelectorAll(`[data-${a}]`).forEach(b => b.onclick = () => f(+b.dataset[a], data.find(o => o.id == b.dataset[a])));
   by('p', (id, o) => { const v = prompt('Nuevo precio (FRZ)', o.price); if (v) run(sb.from('offers').update({ price: +v }).eq('id', id), aOffers); });
