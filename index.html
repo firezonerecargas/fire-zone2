@@ -332,18 +332,15 @@ function drawStore(offers, orders) {
   if (tab !== 'tienda' || !$('#v')) return;
   const pid = ($('#pid') || {}).value || '', pid2 = ($('#pid2') || {}).value || '';
   $('#v').innerHTML = `<div class="c"><div class="mut">Saldo disponible</div><div class="bal">${COIN(46)}<div class="big">${fmt(me.credits)} FRZ</div></div></div>
-  ${me.is_reseller ? resCard() : ''}${rankCard()}<button class="go" id="dpb" style="margin:-4px 0 16px">💰 Depósito</button>
+  ${me.is_reseller ? resCard() : ''}${rankCard()}
   <div class="c"><h2>Free Fire · LATAM</h2>
   <div class="warn">⚠️ <b>Por favor, pegue su ID correctamente.</b> Si lo pone mal es posible que pierda sus créditos y no nos hacemos responsables. Siempre contacte con el soporte si algo anda mal.</div>
-  <div class="mut" style="margin-bottom:8px">Método de pago</div>
-  <div class="mths"><button data-pm="credito" class="${payM === 'credito' ? 'on' : ''}">🪙 Crédito</button><button data-pm="usdt" class="${payM === 'usdt' ? 'on' : ''}">💵 USDT</button><button data-pm="saldo" class="${payM === 'saldo' ? 'on' : ''}">📱 Saldo</button></div>
   <input id="pid" inputmode="numeric" placeholder="Escribe el ID numérico"><input id="pid2" inputmode="numeric" placeholder="Repite el ID para confirmar"><div class="msg" id="m"></div>
   <div class="grid">${offers.map((o, i) => `<div class="o" style="animation-delay:${i * 60}ms"><div>${esc(o.label)}</div><b>${priceTag(o)}</b><button data-o="${o.id}">Comprar</button></div>`).join('')}</div></div>
   <div class="c"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Mis pedidos</h2><button class="s" id="rf">Actualizar</button></div>
   ${orders.length ? '' : ''}${orders.map(o => `<div class="row" data-r="${o.id}" style="cursor:pointer"><div><b>${esc(nice(o.label))}</b> · ${paid(o)}</div><div class="mut">ID ${esc(o.player_id)} · ${new Date(o.created_at).toLocaleString('es')}</div><div><span class="tag ${o.status}">${o.status}</span> <span class="mut">Ver recibo ›</span></div></div>`).join('') || '<p class="mut">Aún no tienes pedidos.</p>'}</div><p class="mut" style="text-align:center;font-size:12px">Fire Zone · v5</p>`;
   $('#pid').value = pid; $('#pid2').value = pid2;
-  $('#rf').onclick = store; $('#dpb').onclick = depositView; if ($('#rkv')) $('#rkv').onclick = rankView; if ($('#rsend')) $('#rsend').onclick = sendCredits;
-  document.querySelectorAll('[data-pm]').forEach(b => b.onclick = () => { payM = b.dataset.pm; sv('fz_pm', payM); drawStore(offers, orders); });
+  $('#rf').onclick = store;  if ($('#rkv')) $('#rkv').onclick = rankView; if ($('#rsend')) $('#rsend').onclick = sendCredits;
   document.querySelectorAll('[data-r]').forEach(r => r.onclick = () => receipt(+r.dataset.r));
   document.querySelectorAll('[data-o]').forEach(b => b.onclick = () => {
     const id = $('#pid').value.trim();
@@ -406,8 +403,8 @@ async function sendCredits() {
 function rankView() {
   dpShell('Rangos', (RANK ? RANK.ranks : []).map(x => `<div class="row"><div><b>${esc(x.name)}</b> · desde ${x.min} 💎</div><div class="mut">Paquete 110 💎: ${x.p110} FRZ</div></div>`).join('') + '<p class="mut" style="text-align:center">Tus diamantes se suman en total: no se reinician al subir de rango.</p>');
 }
-let payM = ld('fz_pm') || 'credito';
-const priceTag = o => payM === 'usdt' ? `💵 ${fmt(effPrice(o))} USDT` : payM === 'saldo' ? `📱 ${Math.ceil(effPrice(o) * SALDO_RATE)} saldo` : `${COIN(20)}${fmt(effPrice(o))} FRZ`;
+let payM = 'credito';
+const priceTag = o => `${COIN(20)}${fmt(effPrice(o))} FRZ`;
 async function payWith(o, pid, m, btn) {
   const label = btn.textContent; btn.disabled = true;
   const reset = msg => { btn.disabled = false; btn.textContent = label; if (msg) err(msg); };
@@ -567,20 +564,19 @@ async function aDeposits() {
 }
 
 function admin() {
-  $('#v').innerHTML = `<div class="tabs">${['ofertas', 'clientes', 'pedidos', 'depositos', 'web'].map(t => `<button class="${t === tab ? 'on' : ''}" data-t="${t}">${({ depositos: 'Pagos', web: 'Web' })[t] || t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div><div id="a"></div>`;
+  $('#v').innerHTML = `<div class="tabs">${['ofertas', 'clientes', 'pedidos', 'web'].map(t => `<button class="${t === tab ? 'on' : ''}" data-t="${t}">${({ web: 'Web' })[t] || t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div><div id="a"></div>`;
   document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tab = b.dataset.t; admin(); });
-  ({ ofertas: aOffers, clientes: aClients, pedidos: aOrders, depositos: aDeposits, web: aWeb })[tab]();
+  ({ ofertas: aOffers, clientes: aClients, pedidos: aOrders, web: aWeb })[tab]();
 }
 const run = async (p, then) => { const { error } = await p; error ? alert(error.message) : then(); };
 
 async function aOffers() {
   const [{ data }, { data: pc }, { data: rk }] = await Promise.all([sb.from('offers').select('*').order('sort'), sb.rpc('pay_config'), sb.from('ranks').select('*').order('pos')]);
   const rate = +((pc && pc.saldo_rate) || 325);
-  $('#a').innerHTML = `<div class="c"><h2>Tasa de saldo móvil</h2><p class="mut">1 FRZ = <b>${rate}</b> de saldo. Los precios en saldo se calculan solos. El precio en USDT es igual al de Crédito.</p><input id="rt" type="number" step="1" min="1" value="${rate}"><button class="f" id="rs">Guardar tasa</button></div><div class="c"><h2>Rangos de cliente</h2><p class="mut">Diamantes recargados en total (no se reinician). Precio = paquete de 110 💎 en FRZ.</p>${(rk || []).map(x => `<div class="row"><div><b>${x.pos}.</b> <input data-rn="${x.pos}" value="${esc(x.name)}"></div><div><input data-rm="${x.pos}" type="number" value="${x.min_total}" placeholder="Desde 💎"> <input data-rp="${x.pos}" type="number" step="0.01" value="${x.p110}" placeholder="110 💎 a FRZ"></div><button class="s" data-rs="${x.pos}">Guardar</button></div>`).join('')}</div><div class="c"><h2>Catálogo Play Zone</h2><button class="f" id="pzc">Ver catálogo e IDs</button><div id="cat" class="mut"></div></div><div class="c"><h2>Nueva oferta</h2><input id="l" placeholder="Nombre (ej. 572 💎)"><input id="pr" type="number" step="0.01" placeholder="Precio en FRZ"><button class="f" id="add">Añadir oferta</button></div>
+  $('#a').innerHTML = `<div class="c"><h2>Rangos de cliente</h2><p class="mut">Diamantes recargados en total (no se reinician). Precio = paquete de 110 💎 en FRZ.</p>${(rk || []).map(x => `<div class="row"><div><b>${x.pos}.</b> <input data-rn="${x.pos}" value="${esc(x.name)}"></div><div><input data-rm="${x.pos}" type="number" value="${x.min_total}" placeholder="Desde 💎"> <input data-rp="${x.pos}" type="number" step="0.01" value="${x.p110}" placeholder="110 💎 a FRZ"></div><button class="s" data-rs="${x.pos}">Guardar</button></div>`).join('')}</div><div class="c"><h2>Catálogo Play Zone</h2><button class="f" id="pzc">Ver catálogo e IDs</button><div id="cat" class="mut"></div></div><div class="c"><h2>Nueva oferta</h2><input id="l" placeholder="Nombre (ej. 572 💎)"><input id="pr" type="number" step="0.01" placeholder="Precio en FRZ"><button class="f" id="add">Añadir oferta</button></div>
   <div class="c">${data.map(o => `<div class="row"><div><b>${esc(o.label)}</b> · ${fmt(o.price)} FRZ · ${Math.ceil(o.price * rate)} saldo ${o.active ? '' : '<span class="bad">(oculta)</span>'}<br><span class="mut">${o.pz_product_id ? '🤖 Automática · Play Zone ID ' + o.pz_product_id : '✋ Manual'}</span></div>
   <div class="btns"><button class="s" data-p="${o.id}">Cambiar precio</button><button class="s" data-z="${o.id}">ID Play Zone</button><button class="s" data-v="${o.id}">${o.active ? 'Ocultar' : 'Mostrar'}</button><button class="s d" data-x="${o.id}">Borrar</button></div></div>`).join('')}</div>`;
   document.querySelectorAll('[data-rs]').forEach(b => b.onclick = () => { const q = s => document.querySelector(`[${s}="${b.dataset.rs}"]`).value; run(sb.rpc('admin_set_rank', { p_pos: +b.dataset.rs, p_name: q('data-rn'), p_min: +q('data-rm'), p_p110: +q('data-rp') }), aOffers); });
-  $('#rs').onclick = () => run(sb.rpc('admin_set_rate', { p_rate: +$('#rt').value }), aOffers);
   $('#add').onclick = () => $('#l').value && run(sb.from('offers').insert({ label: $('#l').value, price: +$('#pr').value, sort: data.length + 1 }), aOffers);
   const by = (a, f) => document.querySelectorAll(`[data-${a}]`).forEach(b => b.onclick = () => f(+b.dataset[a], data.find(o => o.id == b.dataset[a])));
   by('p', (id, o) => { const v = prompt('Nuevo precio (FRZ)', o.price); if (v) run(sb.from('offers').update({ price: +v }).eq('id', id), aOffers); });
